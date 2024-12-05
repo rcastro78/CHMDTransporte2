@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">CHMD Transporte</string>
+    <string name="spref">sv.com.chmd.transporte.spref</string>
+    <string name="title_activity_seleccion_ruta">SeleccionRutaActivity</string>
+    <string name="title_activity_asistencia_man">AsistenciaManActivity</string>
+    <string name="title_activity_asistencia_man_bajar">AsistenciaManBajarActivity</string>
+    <string name="title_activity_asistencia_tar">AsistenciaTarActivity</string>
+    <string name="title_activity_asistencia_tar_bajar">AsistenciaTarBajarActivity</string>
+    <string name="title_activity_validar_dispositivo">ValidarDispositivoActivity</string>
+    <string name="title_activity_transporte">TransporteActivity</string>
+</resources>

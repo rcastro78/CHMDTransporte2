@@ -1,0 +1,126 @@
+{
+  "project_info": {
+    "project_number": "718912487635",
+    "project_id": "chmd2-1565116439936",
+    "storage_bucket": "chmd2-1565116439936.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:718912487635:android:fd1de0264490df98a31426",
+        "android_client_info": {
+          "package_name": "com.rcastroluna.testisp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "718912487635-o0ih8nolmo8842dlaapst7qavnfvvpns.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDreyf6MhfG0kEmx1eS-tXK3FloH74NKf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "718912487635-o0ih8nolmo8842dlaapst7qavnfvvpns.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:718912487635:android:57a6ff875961568da31426",
+        "android_client_info": {
+          "package_name": "ec.ihcp.pcp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "718912487635-o0ih8nolmo8842dlaapst7qavnfvvpns.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDreyf6MhfG0kEmx1eS-tXK3FloH74NKf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "718912487635-o0ih8nolmo8842dlaapst7qavnfvvpns.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:718912487635:android:67bc4785f9592e8ca31426",
+        "android_client_info": {
+          "package_name": "mx.edu.chmd.transportechmd"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "718912487635-o0ih8nolmo8842dlaapst7qavnfvvpns.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDreyf6MhfG0kEmx1eS-tXK3FloH74NKf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "718912487635-o0ih8nolmo8842dlaapst7qavnfvvpns.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:718912487635:android:6f36b7e040ca2cf2a31426",
+        "android_client_info": {
+          "package_name": "sv.com.chmd.transporte"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "718912487635-o0ih8nolmo8842dlaapst7qavnfvvpns.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDreyf6MhfG0kEmx1eS-tXK3FloH74NKf8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "718912487635-o0ih8nolmo8842dlaapst7qavnfvvpns.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
