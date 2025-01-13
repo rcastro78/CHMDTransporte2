@@ -437,6 +437,7 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
 
                     Button(
                         onClick = {
+                            val db = TransporteDB.getInstance(this@AsistenciaTarBajarActivity)
                             if (lstAlumnos.count { it.ascenso_t == "1" && it.descenso_t=="1" } == totalidad) {
                                 Toast.makeText(
                                     this@AsistenciaTarBajarActivity,
@@ -445,7 +446,7 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                                 ).show()
 
                                 if(!hayConexion()){
-                                    val db = TransporteDB.getInstance(this@AsistenciaTarBajarActivity)
+
                                     CoroutineScope(Dispatchers.IO).launch {
                                         db.iRutaDAO.cambiaEstatusRuta(estatus = "2", offline = 1, idRuta = idRuta.toString())
                                     }
@@ -456,6 +457,17 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                                         startActivity(it)
                                     }
                                 }else {
+
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        val alumnosSP = db.iAsistenciaDAO.getAsistenciaSP().size
+                                        if(alumnosSP>0){
+                                            withContext(Dispatchers.Main){
+                                                Toast.makeText(this@AsistenciaTarBajarActivity,"No se puede cerrar todavía, hay registros pendientes de procesar",Toast.LENGTH_LONG).show()
+                                                return@withContext
+                                            }
+                                        }
+
+                                    }
 
                                     asistenciaViewModel.cerrarRuta(idRuta.toString(),
                                         "2",

@@ -373,12 +373,13 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                     }
                     //Spacer(modifier = Modifier.weight(1f))
                     Button(onClick = {
+                        val db = TransporteDB.getInstance(this@AsistenciaManBajarActivity)
                         if(descensos == lstAlumnos.count { it.asistencia != "0" }){
                             Toast.makeText(this@AsistenciaManBajarActivity,"Ya se han registrado todos los alumnos",
                                 Toast.LENGTH_LONG).show()
 
                             if(!hayConexion()){
-                                val db = TransporteDB.getInstance(this@AsistenciaManBajarActivity)
+
                                 CoroutineScope(Dispatchers.IO).launch {
                                     db.iRutaDAO.cambiaEstatusRuta(estatus = "2", offline = 1, idRuta = idRuta.toString())
                                 }
@@ -386,6 +387,17 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                     startActivity(it)
                                 }
                             }else {
+
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    val alumnosSP = db.iAsistenciaDAO.getAsistenciaSP().size
+                                    if(alumnosSP>0){
+                                        withContext(Dispatchers.Main){
+                                            Toast.makeText(this@AsistenciaManBajarActivity,"No se puede cerrar todavía, hay registros pendientes de procesar",Toast.LENGTH_LONG).show()
+                                            return@withContext
+                                        }
+                                    }
+
+                                }
 
                                 asistenciaViewModel.cerrarRuta(idRuta.toString(), "2", onSuccess = {
                                     val db =

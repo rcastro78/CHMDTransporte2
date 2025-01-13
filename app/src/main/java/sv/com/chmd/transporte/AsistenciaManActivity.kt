@@ -355,7 +355,7 @@ fun getAsistencia(){
                                         }
 
 
-                                    /*if(asistencia.ascenso == "2")
+                                    if(asistencia.ascenso == "2")
                                         asistenciaViewModel.reiniciaAsistencia(ruta,idAlumno,
                                             onSuccess = {
                                                 Log.d("asistencia _al_",it)
@@ -364,7 +364,7 @@ fun getAsistencia(){
                                             onError = {
                                                 Log.e("asistencia _al_",it.message.toString())
                                             }
-                                        )*/
+                                        )
 
                                 },
                                 onInasistenciaClick = {ruta, idAlumno ->
@@ -388,10 +388,16 @@ fun getAsistencia(){
 
                         if(_ascensos == _totalidad){
                             Toast.makeText(this@AsistenciaManActivity,"Ya se han registrado todos los alumnos",Toast.LENGTH_LONG).show()
+                            val db = TransporteDB.getInstance(this@AsistenciaManActivity)
+
+                            //Verificar que no haya alumnos sin procesar
+
 
                             if(!hayConexion()){
-                                val db = TransporteDB.getInstance(this@AsistenciaManActivity)
+
                                 CoroutineScope(Dispatchers.IO).launch {
+
+
                                     db.iRutaDAO.cambiaEstatusRuta(estatus = "1", offline = 1, idRuta = idRuta.toString())
                                 }
                                 Intent(
@@ -401,8 +407,20 @@ fun getAsistencia(){
                                     startActivity(it)
                                 }
                             }else{
+                                val db = TransporteDB.getInstance(this@AsistenciaManActivity)
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    val alumnosSP = db.iAsistenciaDAO.getAsistenciaSP().size
+                                    if(alumnosSP>0){
+                                        withContext(Dispatchers.Main){
+                                            Toast.makeText(this@AsistenciaManActivity,"No se puede cerrar todavía, hay registros pendientes de procesar",Toast.LENGTH_LONG).show()
+                                            return@withContext
+                                        }
+                                    }
+
+                                }
+
+
                                 asistenciaViewModel.cerrarRuta(idRuta.toString(),"1", onSuccess = {
-                                    val db = TransporteDB.getInstance(this@AsistenciaManActivity)
                                     CoroutineScope(Dispatchers.IO).launch {
                                         db.iRutaDAO.cambiaEstatusRuta(estatus = "1", offline = 0, idRuta = idRuta.toString())
                                     }

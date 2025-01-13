@@ -520,6 +520,7 @@ class AsistenciaTarActivity : TransporteActivity() {
 
                     Button(
                         onClick = {
+                            val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
                             if (ascensos == totalAlumnos) {
                                 Toast.makeText(
                                     this@AsistenciaTarActivity,
@@ -528,7 +529,7 @@ class AsistenciaTarActivity : TransporteActivity() {
                                 ).show()
 
                                 if(!hayConexion()){
-                                    val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
+
                                     CoroutineScope(Dispatchers.IO).launch {
                                         db.iRutaDAO.cambiaEstatusRuta(estatus = "1", offline = 1, idRuta = idRuta.toString())
                                     }
@@ -539,6 +540,17 @@ class AsistenciaTarActivity : TransporteActivity() {
                                         startActivity(it)
                                     }
                                 }else {
+
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        val alumnosSP = db.iAsistenciaDAO.getAsistenciaSP().size
+                                        if(alumnosSP>0){
+                                            withContext(Dispatchers.Main){
+                                                Toast.makeText(this@AsistenciaTarActivity,"No se puede cerrar todavía, hay registros pendientes de procesar",Toast.LENGTH_LONG).show()
+                                                return@withContext
+                                            }
+                                        }
+
+                                    }
 
                                     asistenciaViewModel.cerrarRuta(idRuta.toString(),
                                         "1",

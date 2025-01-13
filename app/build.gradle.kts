@@ -14,8 +14,8 @@ android {
         applicationId = "sv.com.chmd.transporte"
         minSdk = 28
         targetSdk = 34
-        versionCode = 70
-        versionName = "2.0.4.13"
+        versionCode = 72
+        versionName = "2.0.4.15"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {

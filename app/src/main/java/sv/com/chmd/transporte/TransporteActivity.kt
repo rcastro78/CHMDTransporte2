@@ -12,10 +12,7 @@ import java.util.*
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.WorkRequest
-import sv.com.chmd.transporte.worker.PendingDataWorker
+
 
 
 open class TransporteActivity : ComponentActivity() {
@@ -28,9 +25,9 @@ open class TransporteActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setTimeOut()
 
-        val workRequest: WorkRequest = OneTimeWorkRequestBuilder<PendingDataWorker>()
+       /* val workRequest: WorkRequest = OneTimeWorkRequestBuilder<PendingDataWorker>()
             .build()
-        WorkManager.getInstance(applicationContext).enqueue(workRequest)
+        WorkManager.getInstance(applicationContext).enqueue(workRequest)*/
 
         // Registrar el receptor para cambios en la conectividad
         connectivityReceiver = ConnectivityReceiver()
