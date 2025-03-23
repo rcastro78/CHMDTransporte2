@@ -25,10 +25,6 @@ open class TransporteActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setTimeOut()
 
-       /* val workRequest: WorkRequest = OneTimeWorkRequestBuilder<PendingDataWorker>()
-            .build()
-        WorkManager.getInstance(applicationContext).enqueue(workRequest)*/
-
         // Registrar el receptor para cambios en la conectividad
         connectivityReceiver = ConnectivityReceiver()
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)

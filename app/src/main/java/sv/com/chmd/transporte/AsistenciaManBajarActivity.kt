@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.get
@@ -125,6 +126,7 @@ class AsistenciaManBajarActivity : TransporteActivity() {
         }
     }
 
+    /*
     fun getAsistencia(){
         if(hayConexion()) {
             asistenciaViewModel.getAsistenciaManBajar(idRuta.toString(), token!!,
@@ -186,6 +188,77 @@ class AsistenciaManBajarActivity : TransporteActivity() {
 
 
 
+        }
+    }
+*/
+    fun getAsistencia() {
+        if (hayConexion()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                asistenciaViewModel.getAsistenciaManBajar(idRuta.toString(), token!!)
+                    .catch { error ->
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                this@AsistenciaManBajarActivity,
+                                "Error al obtener los datos: ${error.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                    .collect { it ->
+                        withContext(Dispatchers.Main) {
+                            lstAlumnos.clear()
+                            lstAlumnos.addAll(it)
+                            lstAlumnos.removeAll { it.ascenso == "2" && it.descenso == "2" }
+                            descensos = it.count { it.ascenso == "1" && it.descenso == "1" }
+                            inasistencias = 0
+                            totalidad = it.count { it.asistencia == "1" }
+                        }
+                    }
+            }
+        } else {
+            // Modo Offline: Traer datos desde la base de datos
+            lstAlumnos.clear()
+            CoroutineScope(Dispatchers.IO).launch {
+                val db = TransporteDB.getInstance(this@AsistenciaManBajarActivity)
+                val data = db.iAsistenciaDAO.getAsistencia(idRuta.toString())
+
+                val asistenciaList = data.map { asistenciaDAO ->
+                    Asistencia(
+                        tarjeta = asistenciaDAO.tarjeta,
+                        ascenso = asistenciaDAO.ascenso,
+                        ascenso_t = asistenciaDAO.ascenso_t ?: "0",
+                        asistencia = asistenciaDAO.asistencia,
+                        descenso = asistenciaDAO.descenso,
+                        descenso_t = asistenciaDAO.descenso_t,
+                        domicilio = asistenciaDAO.domicilio,
+                        domicilio_s = asistenciaDAO.domicilio_s,
+                        estatus = "",
+                        fecha = "",
+                        foto = asistenciaDAO.foto,
+                        grado = asistenciaDAO.grado,
+                        grupo = asistenciaDAO.grupo,
+                        hora_manana = asistenciaDAO.horaManana,
+                        hora_regreso = asistenciaDAO.horaRegreso,
+                        id_alumno = asistenciaDAO.idAlumno,
+                        id_ruta_h = asistenciaDAO.idRuta,
+                        id_ruta_h_s = "",
+                        nivel = asistenciaDAO.nivel,
+                        nombre = asistenciaDAO.nombreAlumno,
+                        orden_in = asistenciaDAO.ordenIn,
+                        orden_out = asistenciaDAO.ordenOut,
+                        salida = asistenciaDAO.salida,
+                        tipo_asistencia = ""
+                    )
+                }
+
+                withContext(Dispatchers.Main) {
+                    lstAlumnos.addAll(asistenciaList)
+                    lstAlumnos.removeAll { it.ascenso == "2" && it.descenso == "2" }
+                    descensos = lstAlumnos.count { it.ascenso == "1" && it.descenso == "1" }
+                    inasistencias = 0
+                    totalidad = lstAlumnos.count { it.asistencia == "1" }
+                }
+            }
         }
     }
 
@@ -271,7 +344,15 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                         )
                         * */
 
-                        itemsIndexed(filteredList) { index, asistencia ->
+                        itemsIndexed(
+                            filteredList.sortedWith(
+                                compareByDescending<Asistencia> {it.asistencia.toInt()}
+                                    .thenBy { it.ascenso.toInt() }            // Orden ascendente para ascenso
+                                    .thenBy { it.descenso.toInt() }           // Orden ascendente para descenso
+                                    .thenBy { it.orden_in!!.toInt() }            // Orden ascendente para ordenIn
+                                    .thenBy { it.salida.toInt() }
+                            )
+                        ) { index, asistencia ->
                             if (index > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
                             }
@@ -416,7 +497,11 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                         startActivity(it)
                                     }
                                 },
-                                    onError = {})
+                                    onError = {
+                                        CoroutineScope(Dispatchers.Main).launch{
+                                            Toast.makeText(this@AsistenciaManBajarActivity,"No se pudo cerrar la ruta, consulta con IT",Toast.LENGTH_LONG).show()
+                                        }
+                                    })
                             }
 
                         }else{

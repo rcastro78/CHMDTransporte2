@@ -285,9 +285,6 @@ class MainActivity : ComponentActivity() {
                     Log.d("Login", "Username: $username, Password: $password")
                     if(rememberMe)
                         sharedPreferences.edit().putString("username",username).apply()
-
-
-
                         //if(username.lowercase().contains("camion")) {
                         loginViewModel.getRutasCamion(username.lowercase().replace("camion", ""),
                             onSuccess = { lstRutas ->

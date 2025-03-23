@@ -204,6 +204,7 @@ fun AlumnoAsistenciaManComposable(
     onInasistenciaClick: (String, String) -> Unit = { _: String, _: String -> } // Pasar idAlumno como parámetro
 ) {
     val context = LocalContext.current
+    var isLoading by remember { mutableStateOf(true) }
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -275,7 +276,6 @@ fun AlumnoAsistenciaManComposable(
                         .align(Alignment.CenterVertically)
                         .padding(start = 12.dp)
                 }
-
                 Box(
                     modifier = modifier // Llama al callback con idAlumno
                 ) {
@@ -742,14 +742,14 @@ fun AlumnoAsistenciaTarBajarComposable(
                 .fillMaxSize()
                 .background(
                     when {
-                        ascenso == "2" && descenso == "2" -> colorResource(R.color.rojoInasistencia)
+
                         ascenso_t == "0" && descenso_t == "0" && salida == "3" -> colorResource(R.color.salio)
                         ascenso_t == "0" && descenso_t == "0" && salida == "2" -> colorResource(R.color.salida)
                         orden_out!!.toInt() > 900 && ascenso_t == "0" -> colorResource(R.color.rosado)
                         orden_out!!.toInt() > 900 && ascenso_t == "1" && descenso_t == "1" -> colorResource(R.color.verde)
                         ascenso_t == "0" && descenso_t == "0" -> colorResource(R.color.white)
                         ascenso_t == "1" && descenso_t == "0" -> colorResource(R.color.amarillo)
-                        ascenso_t == "2" && descenso_t == "2" -> colorResource(R.color.rosado)
+                        ascenso_t == "2" && descenso_t == "2" -> colorResource(R.color.rojoInasistencia)
                         ascenso_t == "1" && descenso_t == "1" -> colorResource(R.color.verde)
 
                         else -> colorResource(android.R.color.transparent) // Color por defecto si no coincide

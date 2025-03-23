@@ -53,8 +53,14 @@ class AsistenciaDAO(
         @Query("SELECT DISTINCT(domicilio) FROM $TABLE_NAME WHERE idRuta=:idRuta AND cast(asistencia as integer)>0")
         fun getDirecciones(idRuta: String):List<String>
 
-        //@Query("SELECT * FROM $TABLE_NAME WHERE idRuta=:idRuta AND ascenso<2 AND descenso<2 ORDER BY CAST(porSalir as INTEGER),CAST(ascenso_t as INTEGER), CAST(descenso_t as INTEGER), CAST(asistencia AS INTEGER) DESC, CAST(ordenEspecial as INTEGER) DESC, nombreAlumno")
-        @Query("SELECT * FROM $TABLE_NAME WHERE idRuta=:idRuta AND cast(asistencia as integer)>0 AND asistencia=1 ORDER BY CAST(ordenEspecial as INTEGER) DESC,  CAST(asistencia AS integer) DESC,CAST(ascenso_t as INTEGER),CAST(salida as INTEGER),CAST(ordenOut as INTEGER) DESC, nombreAlumno")
+        @Query("SELECT * FROM $TABLE_NAME WHERE idRuta=:idRuta AND cast(asistencia as integer)>0 AND asistencia=1 " +
+                "ORDER BY CAST(ascenso_t as INTEGER), " +
+                "CASE  WHEN CAST(ordenOut AS INTEGER) > 900 THEN 0 ELSE 1 END," +
+                "CAST(salida as INTEGER)," +
+                "CAST(ordenOut as INTEGER) DESC," +
+                "CAST(ascenso_t as INTEGER)," +
+                "CAST(descenso_t as INTEGER), " +
+                "CAST(idAlumno as INTEGER)")
         fun getAsistenciaTarde(idRuta: String):List<AsistenciaDAO>
 
         @Query("SELECT COUNT(*) FROM $TABLE_NAME WHERE idRuta=:idRuta AND asistencia='1'")

@@ -283,7 +283,15 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                             .weight(1f)
                     ) {
                         itemsIndexed(
-                            filteredList
+                            filteredList.sortedWith(
+                                compareByDescending<Asistencia> { it.ascenso_t.toInt() }
+                                    .thenByDescending { if ((it.orden_out?.toIntOrNull() ?: 0) > 900) 0 else 1 } // Priorizar orden_out > 900
+                                    .thenBy { it.salida.toInt() } // Orden ascendente por salida
+                                    .thenByDescending { it.orden_out?.toIntOrNull() ?: 0 } // Orden descendente por orden_out
+                                    .thenBy { it.ascenso_t.toInt() } // Orden ascendente por ascenso_t
+                                    .thenBy { it.descenso_t.toInt() } // Orden ascendente por descenso_t
+                                    .thenBy { it.id_alumno.toInt() } // Orden ascendente por id_alumno
+                            )
                         ) { index, lst ->
                             if (index > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
