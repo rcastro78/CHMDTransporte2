@@ -97,16 +97,21 @@ interface ITransporte {
 
     //Cerrar ruta
 
-    @GET("cerrarRuta3.php")
+    @GET("cerrarRuta3_TEST.php")
     fun cerrarRuta(
         @Query("id_ruta") id_ruta: String?,
         @Query("estatus") estatus: String?
     ): Call<String>
 
+    @GET("puedeCerrarRuta.php")
+    fun puedeCerrarRutaTarde(
+        @Query("id_ruta") id_ruta: String?,
+        @Query("estatus") estatus: String?
+    ): Call<PuedeCerrarRutaResponse>
 
     //Cerrar ruta
     @FormUrlEncoded
-    @POST("cerrarRutaTarde2.php")
+    @POST("cerrarRutaTarde2_TEST.php")
     fun cerrarRutaTarde(
         @Field("id_ruta") id_ruta: String?,
         @Field("estatus") estatus: String?

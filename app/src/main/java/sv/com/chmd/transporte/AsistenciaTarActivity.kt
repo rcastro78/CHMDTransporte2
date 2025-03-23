@@ -76,6 +76,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
@@ -97,12 +98,14 @@ import sv.com.chmd.transporte.util.nunitoBold
 import sv.com.chmd.transporte.util.nunitoRegular
 import sv.com.chmd.transporte.viewmodel.AsistenciaManViewModel
 import sv.com.chmd.transporte.viewmodel.AsistenciaTarViewModel
+import sv.com.chmd.transporte.viewmodel.CierreRutaViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class AsistenciaTarActivity : TransporteActivity() {
     private val asistenciaViewModel: AsistenciaTarViewModel by viewModel()
+    private val cierreRutaViewModel: CierreRutaViewModel by viewModel()
     private val networkChangeReceiver: NetworkChangeReceiver by inject()
     private val sharedPreferences:SharedPreferences by inject()
     var lstAlumnos = mutableStateListOf<Asistencia>()
@@ -164,6 +167,7 @@ class AsistenciaTarActivity : TransporteActivity() {
             onError = {})
     }
 
+    /*
     fun getAsistencia(){
 
         if(hayConexion()) {
@@ -225,6 +229,80 @@ class AsistenciaTarActivity : TransporteActivity() {
             }
         }
 
+    }
+*/
+
+    fun getAsistencia() {
+        if (hayConexion()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                asistenciaViewModel.getAsistencia(idRuta.toString(), token!!)
+                    .catch {
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                this@AsistenciaTarActivity,
+                                "Ocurrió un error al tratar de obtener los datos",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                    .collect { asistenciaList ->
+                        withContext(Dispatchers.Main) {
+                            lstAlumnos.clear()
+                            lstAlumnos.addAll(asistenciaList)
+
+                            lstAlumnos.removeAll { it.asistencia.toIntOrNull() == 0 }
+
+                            ascensos = lstAlumnos.count { it.ascenso_t == "1" && (it.salida.toIntOrNull() ?: 0) < 2 }
+                            inasistencias = lstAlumnos.count { it.ascenso_t == "2" && it.descenso_t == "2" }
+                            totalidad = lstAlumnos.count { it.asistencia == "1" }
+                        }
+                    }
+            }
+        } else {
+            // Modo offline
+            lstAlumnos.clear()
+            CoroutineScope(Dispatchers.IO).launch {
+                val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
+                val data = db.iAsistenciaDAO.getAsistenciaTarde(idRuta.toString())
+
+                val asistenciaList = data.map { asistenciaDAO ->
+                    Asistencia(
+                        tarjeta = asistenciaDAO.tarjeta,
+                        ascenso = asistenciaDAO.ascenso,
+                        ascenso_t = asistenciaDAO.ascenso_t ?: "0",
+                        asistencia = asistenciaDAO.asistencia,
+                        descenso = asistenciaDAO.descenso,
+                        descenso_t = asistenciaDAO.descenso_t,
+                        domicilio = asistenciaDAO.domicilio,
+                        domicilio_s = asistenciaDAO.domicilio_s,
+                        estatus = "", // Valor predeterminado
+                        fecha = "", // Valor predeterminado
+                        foto = asistenciaDAO.foto,
+                        grado = asistenciaDAO.grado,
+                        grupo = asistenciaDAO.grupo,
+                        hora_manana = asistenciaDAO.horaManana,
+                        hora_regreso = asistenciaDAO.horaRegreso,
+                        id_alumno = asistenciaDAO.idAlumno,
+                        id_ruta_h = asistenciaDAO.idRuta,
+                        id_ruta_h_s = "", // Valor predeterminado
+                        nivel = asistenciaDAO.nivel,
+                        nombre = asistenciaDAO.nombreAlumno,
+                        orden_in = asistenciaDAO.ordenIn,
+                        orden_out = asistenciaDAO.ordenOut,
+                        salida = asistenciaDAO.salida,
+                        tipo_asistencia = "" // Valor predeterminado
+                    )
+                }
+
+                withContext(Dispatchers.Main) {
+                    lstAlumnos.addAll(asistenciaList)
+                    lstAlumnos.removeAll { it.asistencia.toIntOrNull() == 0 }
+                    ascensos = lstAlumnos.count { it.ascenso_t == "1" && (it.salida.toIntOrNull() ?: 0) < 2 }
+                    inasistencias = lstAlumnos.count { it.ascenso_t == "2" && it.descenso_t == "2" }
+                    totalidad = lstAlumnos.count { it.asistencia == "1" }
+                }
+            }
+        }
     }
 
     @Composable
@@ -313,14 +391,8 @@ class AsistenciaTarActivity : TransporteActivity() {
                             .padding(8.dp)
                             .weight(1f)
                     ) {
-                        itemsIndexed(filteredList
-                            /*filteredList.sortedWith(
-                                compareByDescending<Asistencia> { it.orden_out!!.toInt() > 900 }            // Prioridad para los que tienen orden_out > 900
-                                    .thenBy { it.salida.toInt() }
-                                    .thenBy { it.ascenso_t.toInt() }                                // Orden ascendente para ascenso_t
-                                    .thenBy { it.descenso_t.toInt() }
-                                    .thenBy { it.orden_out!!.toInt() }
-                            )*/
+                        itemsIndexed(
+                            filteredList
                         ) { index, asistencia ->
                             if (index > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -520,6 +592,7 @@ class AsistenciaTarActivity : TransporteActivity() {
 
                     Button(
                         onClick = {
+                            val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
                             if (ascensos == totalAlumnos) {
                                 Toast.makeText(
                                     this@AsistenciaTarActivity,
@@ -528,7 +601,7 @@ class AsistenciaTarActivity : TransporteActivity() {
                                 ).show()
 
                                 if(!hayConexion()){
-                                    val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
+
                                     CoroutineScope(Dispatchers.IO).launch {
                                         db.iRutaDAO.cambiaEstatusRuta(estatus = "1", offline = 1, idRuta = idRuta.toString())
                                     }
@@ -539,6 +612,17 @@ class AsistenciaTarActivity : TransporteActivity() {
                                         startActivity(it)
                                     }
                                 }else {
+
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        val alumnosSP = db.iAsistenciaDAO.getAsistenciaSP().size
+                                        if(alumnosSP>0){
+                                            withContext(Dispatchers.Main){
+                                                Toast.makeText(this@AsistenciaTarActivity,"No se puede cerrar todavía, hay registros pendientes de procesar",Toast.LENGTH_LONG).show()
+                                                return@withContext
+                                            }
+                                        }
+
+                                    }
 
                                     asistenciaViewModel.cerrarRuta(idRuta.toString(),
                                         "1",
@@ -560,7 +644,11 @@ class AsistenciaTarActivity : TransporteActivity() {
                                                 startActivity(it)
                                             }
                                         },
-                                        onError = {})
+                                        onError = {
+                                            CoroutineScope(Dispatchers.Main).launch{
+                                                Toast.makeText(this@AsistenciaTarActivity,"No se pudo cerrar la ruta, consulta con IT",Toast.LENGTH_LONG).show()
+                                            }
+                                        })
                                 }
                             } else {
                                 Toast.makeText(

@@ -283,7 +283,15 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                             .weight(1f)
                     ) {
                         itemsIndexed(
-                            filteredList
+                            filteredList.sortedWith(
+                                compareByDescending<Asistencia> { it.ascenso_t.toInt() }
+                                    .thenByDescending { if ((it.orden_out?.toIntOrNull() ?: 0) > 900) 0 else 1 } // Priorizar orden_out > 900
+                                    .thenBy { it.salida.toInt() } // Orden ascendente por salida
+                                    .thenByDescending { it.orden_out?.toIntOrNull() ?: 0 } // Orden descendente por orden_out
+                                    .thenBy { it.ascenso_t.toInt() } // Orden ascendente por ascenso_t
+                                    .thenBy { it.descenso_t.toInt() } // Orden ascendente por descenso_t
+                                    .thenBy { it.id_alumno.toInt() } // Orden ascendente por id_alumno
+                            )
                         ) { index, lst ->
                             if (index > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
@@ -437,6 +445,7 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
 
                     Button(
                         onClick = {
+                            val db = TransporteDB.getInstance(this@AsistenciaTarBajarActivity)
                             if (lstAlumnos.count { it.ascenso_t == "1" && it.descenso_t=="1" } == totalidad) {
                                 Toast.makeText(
                                     this@AsistenciaTarBajarActivity,
@@ -445,7 +454,7 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                                 ).show()
 
                                 if(!hayConexion()){
-                                    val db = TransporteDB.getInstance(this@AsistenciaTarBajarActivity)
+
                                     CoroutineScope(Dispatchers.IO).launch {
                                         db.iRutaDAO.cambiaEstatusRuta(estatus = "2", offline = 1, idRuta = idRuta.toString())
                                     }
@@ -456,6 +465,17 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                                         startActivity(it)
                                     }
                                 }else {
+
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        val alumnosSP = db.iAsistenciaDAO.getAsistenciaSP().size
+                                        if(alumnosSP>0){
+                                            withContext(Dispatchers.Main){
+                                                Toast.makeText(this@AsistenciaTarBajarActivity,"No se puede cerrar todavía, hay registros pendientes de procesar",Toast.LENGTH_LONG).show()
+                                                return@withContext
+                                            }
+                                        }
+
+                                    }
 
                                     asistenciaViewModel.cerrarRuta(idRuta.toString(),
                                         "2",

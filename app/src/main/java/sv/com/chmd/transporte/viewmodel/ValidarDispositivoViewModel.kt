@@ -79,6 +79,7 @@ class ValidarDispositivoViewModel(private val iTransporte: ITransporte,
                 val response = iTransporte.validaDispositivo2(androidId).awaitResponse()
                 if (response.isSuccessful) {
                     val result = response.body()?.access
+                    //devolver un bloque
                     result?.let {
                         Log.d("VERIFICAR", it)
                         when (it) {
