@@ -289,7 +289,6 @@ class MainActivity : ComponentActivity() {
                         loginViewModel.getRutasCamion(username.lowercase().replace("camion", ""),
                             onSuccess = { lstRutas ->
                                 val db = TransporteDB.getInstance(this@MainActivity)
-
                                 CoroutineScope(Dispatchers.IO).launch {
                                     db.iRutaDAO.delete()
                                     db.iAsistenciaDAO.eliminaAsistenciaCompleta()
@@ -314,7 +313,10 @@ class MainActivity : ComponentActivity() {
                                                                 alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
                                                                 alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                                                                 alumno.nivel,alumno.foto,false,false,alumno.ascenso_t!!,alumno.descenso_t,
-                                                                alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"")
+                                                                alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"",
+                                                                especial,"",alumno.orden_in_1.toString(),
+                                                                alumno.orden_out_1.toString()
+                                                                )
 
                                                             db.iAsistenciaDAO.guardaAsistencia(a)
                                                         }
@@ -373,13 +375,7 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     },
                                                     onError = {})
-
-
-
-
-
-
-                                                db.iRutaDAO.guardaRutas(
+                                             db.iRutaDAO.guardaRutas(
 
                                                     RutaDAO(
                                                         0,
