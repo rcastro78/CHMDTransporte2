@@ -25,5 +25,7 @@ data class Asistencia(
     val orden_out: String?="0",
     val salida: String,
     val tipo_asistencia: String,
-    val orden_especial:String?="0"
+    val orden_especial:String?="0",
+    val orden_in_1: String?="0",
+    val orden_out_1: String?="0",
 )

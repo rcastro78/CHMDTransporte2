@@ -1,9 +1,11 @@
 package sv.com.chmd.transporte
 
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
 import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
@@ -41,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import sv.com.chmd.transporte.ui.theme.CHMDTransporteTheme
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -103,71 +106,85 @@ class ValidarDispositivoActivity : ComponentActivity() {
         var estado by remember { mutableStateOf("") }
         var hasNavigatedToMain by remember { mutableStateOf(false) }
 
-        validarDispositivoViewModel.registraDispositivo("", mId, "$manufacturer $model",
-            onRegisterSuccessful = {
-                // Registro exitoso
-            },
-            onValidDeviceSuccessful = {
-                // Dispositivo válido
-            },
-            onNotRegistered = {
-                // Dispositivo no registrado
-            },
-            onInvalidDevice = {
-                // Dispositivo inválido
-            },
-            onError = {
-                CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(
-                        this@ValidarDispositivoActivity,
-                        "Error al validar el dispositivo",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-            }
-        )
 
-        validarDispositivoViewModel.getDispositivoValido(
-            mId,
-            onSuccessful = {
-                estado = it.access
+        LaunchedEffect(Unit) {
+            if (isNetworkAvailable()) {
 
-                if (it.access == "granted" && !hasNavigatedToMain) {
-                    hasNavigatedToMain = true
-                    sharedPreferences.edit().putString("token", it.token).apply()
-                    Intent(
-                        this@ValidarDispositivoActivity,
-                        MainActivity::class.java
-                    ).also { intent ->
-                        startActivity(intent)
-                        finish()
-                    }
-                }
-
-                if (it.access in listOf("denied", "-1", "-2")) {
-                    CoroutineScope(Dispatchers.Main).launch {
-                        val message = when (it.access) {
-                            "denied" -> "No tienes acceso: fuera de horario laboral"
-                            "-1" -> "No tienes acceso"
-                            "-2" -> "Sin acceso: comunica este código a soporte técnico: $mId"
-                            else -> ""
+                validarDispositivoViewModel.registraDispositivo(
+                    "", mId, "$manufacturer $model",
+                    onRegisterSuccessful = {
+                        // Registro exitoso
+                    },
+                    onValidDeviceSuccessful = {
+                        // Dispositivo válido
+                    },
+                    onNotRegistered = {
+                        // Dispositivo no registrado
+                    },
+                    onInvalidDevice = {
+                        // Dispositivo inválido
+                    },
+                    onError = {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            Toast.makeText(
+                                this@ValidarDispositivoActivity,
+                                "Error al validar el dispositivo",
+                                Toast.LENGTH_SHORT
+                            ).show()
                         }
-                        //Toast.makeText(this@ValidarDispositivoActivity, message, Toast.LENGTH_SHORT).show()
                     }
-                }
-            },
-            onError = {
-                CoroutineScope(Dispatchers.Main).launch {
-                    Toast.makeText(
-                        this@ValidarDispositivoActivity,
-                        "Error al validar el dispositivo",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                )
 
+                validarDispositivoViewModel.getDispositivoValido(
+                    mId,
+                    onSuccessful = {
+                        estado = it.access
+
+                        if (it.access == "granted" && !hasNavigatedToMain) {
+                            hasNavigatedToMain = true
+                            sharedPreferences.edit().putString("token", it.token).apply()
+                            Intent(
+                                this@ValidarDispositivoActivity,
+                                MainActivity::class.java
+                            ).also { intent ->
+                                startActivity(intent)
+                                finish()
+                            }
+                        }
+
+                        if (it.access in listOf("denied", "-1", "-2")) {
+                            CoroutineScope(Dispatchers.Main).launch {
+                                val message = when (it.access) {
+                                    "denied" -> "No tienes acceso: fuera de horario laboral"
+                                    "-1" -> "No tienes acceso"
+                                    "-2" -> "Sin acceso: comunica este código a soporte técnico: $mId"
+                                    else -> ""
+                                }
+                                //Toast.makeText(this@ValidarDispositivoActivity, message, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
+                    onError = {
+                        CoroutineScope(Dispatchers.Main).launch {
+                            Toast.makeText(
+                                this@ValidarDispositivoActivity,
+                                "Error al validar el dispositivo",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+
+
+                    }
+                )
+            } else {
+                Toast.makeText(
+                    this@ValidarDispositivoActivity,
+                    "Sin internet. No pudo validarse el dispositivo",
+                    Toast.LENGTH_SHORT
+                ).show()
 
             }
-        )
+        }
 
         Box(modifier = Modifier.fillMaxSize()) {
             Image(
@@ -271,4 +288,12 @@ class ValidarDispositivoActivity : ComponentActivity() {
         val model = Build.MODEL
         return Pair(manufacturer, model)
     }
+
+    private fun isNetworkAvailable(): Boolean {
+        val connectivityManager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val networkCapabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+    }
+
 }

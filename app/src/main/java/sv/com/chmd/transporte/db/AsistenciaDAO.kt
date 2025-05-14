@@ -32,7 +32,9 @@ class AsistenciaDAO(
     @ColumnInfo(name = "asistencia")  val  asistencia:String,
     @ColumnInfo(name = "horaRegistro")  val  horaRegistro:String,
     @ColumnInfo(name = "ordenEspecial")  val  ordenEspecial:String="0",
-    @ColumnInfo(name = "porSalir")  val  porSalir:String="0"
+    @ColumnInfo(name = "porSalir")  val  porSalir:String="0",
+    @ColumnInfo(name = "ordenIn1")  val  ordenIn1:String="0",
+@ColumnInfo(name = "ordenOut1")  val  ordenOut1:String="0",
 ) {
     companion object {
         const val TABLE_NAME = "Asistencia"

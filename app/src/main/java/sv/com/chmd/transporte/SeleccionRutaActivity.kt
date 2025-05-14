@@ -33,6 +33,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,12 +61,13 @@ import sv.com.chmd.transporte.services.NetworkChangeReceiver
 import sv.com.chmd.transporte.ui.theme.CHMDTransporteTheme
 import sv.com.chmd.transporte.util.nunitoBold
 import sv.com.chmd.transporte.viewmodel.LoginViewModel
+import sv.com.chmd.transporte.viewmodel.SeleccionRutaViewModel
 
 class SeleccionRutaActivity : TransporteActivity() {
-    var lstRutas = mutableStateListOf<RutaCamionItem>()
+
     private val networkChangeReceiver: NetworkChangeReceiver by inject()
     private val sharedPreferences:SharedPreferences by inject()
-
+    private val viewModel: SeleccionRutaViewModel by viewModel()
     override fun onResume() {
         super.onResume()
 
@@ -87,8 +89,8 @@ class SeleccionRutaActivity : TransporteActivity() {
         enableEdgeToEdge()
         setContent {
             CHMDTransporteTheme {
-                lstRutas.clear()
-                getRutas()
+                //lstRutas.clear()
+                //getRutas()
                SeleccionRutaScreen()
             }
         }
@@ -125,13 +127,13 @@ class SeleccionRutaActivity : TransporteActivity() {
                     )
 
                     Spacer(modifier = Modifier.height(12.dp))
-
+                    val rutas by viewModel.lstRutas.collectAsState()
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxWidth()
                             .weight(1f)
                     ) {
-                        itemsIndexed(lstRutas) { index, item ->
+                        itemsIndexed(rutas) { index, item ->
                             if (index > 0) {
                                 Spacer(modifier = Modifier.height(8.dp))
                             }
@@ -141,8 +143,8 @@ class SeleccionRutaActivity : TransporteActivity() {
                                 tipoRutaImage = if(item.turno == "1") R.drawable.am else R.drawable.pm,
                                 modifier = Modifier,
                                 onClick = {
-                                    val idRuta = lstRutas[index].id_ruta_h
-                                    val nombreRuta = lstRutas[index].nombre_ruta
+                                    val idRuta = rutas[index].id_ruta_h
+                                    val nombreRuta = rutas[index].nombre_ruta
                                     sharedPreferences.edit().putString("idRuta",idRuta).apply()
                                     //Ruta mañana, modo subida (recogiendo niños)
                                     if(item.turno == "1" && item.estatus=="0") {
@@ -260,45 +262,7 @@ class SeleccionRutaActivity : TransporteActivity() {
         )
     }
 
-    //Recuperar datos de la base y mostrarlos
-    fun getRutas() {
-        val db = TransporteDB.getInstance(this)
-        CoroutineScope(Dispatchers.IO).launch {
-            val rutas = db.iRutaDAO.getRutasActivas().filter { it.estatus.toInt()<2 }.sortedBy { it.turno }
-            rutas.forEach { it ->
-                Log.d("RutasDB", it.nombre)
-            }
-            if(rutas.isEmpty()){
-                withContext(Dispatchers.Main){
-                    Toast.makeText(applicationContext,"No hay rutas asignadas",Toast.LENGTH_LONG).show()
-                    val intent = Intent(this@SeleccionRutaActivity, MainActivity::class.java)
-                    startActivity(intent)
-                    finish()
-                }
-            }
 
-
-            withContext(Dispatchers.Main) {
-                lstRutas.clear()
-                rutas.forEach { it ->
-                    lstRutas.add(
-                        RutaCamionItem(
-                            it.camion,
-                            it.estatus,
-                            it.idRuta,
-                            it.nombre,
-                            it.tipoRuta,
-                            it.turno)
-                    )
-
-
-
-                }
-            }
-
-        }
-
-    }
 
     private fun generarCodigoRuta(turno:String, tipo_ruta:String, camion:String):String{
         var trn = ""

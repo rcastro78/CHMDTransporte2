@@ -1,7 +1,7 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
-    id("kotlin-kapt")
+    id("com.google.devtools.ksp") version "1.9.10-1.0.13"
     alias(libs.plugins.google.gms.google.services)
     alias(libs.plugins.google.firebase.crashlytics)
 }
@@ -91,7 +91,11 @@ dependencies {
     implementation ("com.squareup.retrofit2:converter-gson:2.8.1")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
     implementation("androidx.sqlite:sqlite-framework:2.4.0")
-    kapt("androidx.room:room-compiler:2.6.1")
+
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    ksp("androidx.room:room-compiler:2.6.1")
+
     implementation(libs.coil.compose)
 
 

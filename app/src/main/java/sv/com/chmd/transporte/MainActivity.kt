@@ -281,21 +281,18 @@ class MainActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.weight(1f))
 
                     Button(onClick = {
-
-                    Log.d("Login", "Username: $username, Password: $password")
                     if(rememberMe)
                         sharedPreferences.edit().putString("username",username).apply()
                         //if(username.lowercase().contains("camion")) {
                         loginViewModel.getRutasCamion(username.lowercase().replace("camion", ""),
                             onSuccess = { lstRutas ->
                                 val db = TransporteDB.getInstance(this@MainActivity)
-
                                 CoroutineScope(Dispatchers.IO).launch {
                                     db.iRutaDAO.delete()
                                     db.iAsistenciaDAO.eliminaAsistenciaCompleta()
                                     lstRutas.forEach { it ->
                                         CoroutineScope(Dispatchers.IO).launch {
-                                            if (it.estatus.toInt() < 2 )
+                                                if (it.estatus.toInt() < 2 )
                                                     db.iAsistenciaDAO.eliminaAsistencia(it.id_ruta)
                                                         if(it.turno == "1")
                                                             asistenciaManViewModel.getAsistenciaMan(it.id_ruta, token,
@@ -314,7 +311,10 @@ class MainActivity : ComponentActivity() {
                                                                 alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
                                                                 alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                                                                 alumno.nivel,alumno.foto,false,false,alumno.ascenso_t!!,alumno.descenso_t,
-                                                                alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"")
+                                                                alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"",
+                                                                especial,"",alumno.orden_in_1.toString(),
+                                                                alumno.orden_out_1.toString()
+                                                                )
 
                                                             db.iAsistenciaDAO.guardaAsistencia(a)
                                                         }
@@ -373,13 +373,7 @@ class MainActivity : ComponentActivity() {
                                                         }
                                                     },
                                                     onError = {})
-
-
-
-
-
-
-                                                db.iRutaDAO.guardaRutas(
+                                             db.iRutaDAO.guardaRutas(
 
                                                     RutaDAO(
                                                         0,

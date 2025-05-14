@@ -17,7 +17,7 @@ abstract class TransporteDB : RoomDatabase() {
                 INSTANCE = Room.databaseBuilder(
                     context,
                     TransporteDB::class.java,
-                    "transporte_chmd_000.db"
+                    "transporte_chmd_002.db"
                 )
                     .build()
             }

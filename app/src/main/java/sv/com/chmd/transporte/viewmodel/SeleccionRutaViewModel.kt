@@ -12,11 +12,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import sv.com.chmd.transporte.db.TransporteDB
 import sv.com.chmd.transporte.model.RutaCamionItem
+import sv.com.chmd.transporte.repository.RutaRepository
 
 class SeleccionRutaViewModel(
-    private val c: Context,
-    private val db: TransporteDB,
-    private val sharedPreferences: SharedPreferences
+    private val repository: RutaRepository
 ) : ViewModel() {
 
     private val _lstRutas = MutableStateFlow<List<RutaCamionItem>>(emptyList())
@@ -28,34 +27,18 @@ class SeleccionRutaViewModel(
 
     private fun getRutas() {
         viewModelScope.launch(Dispatchers.IO) {
-            val rutas = db.iRutaDAO.getRutasActivas()
-                .filter { it.estatus.toInt() < 2 }
-                .sortedBy { it.turno }
-
-            if (rutas.isEmpty()) {
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(
-                        c.applicationContext,
-                        "No hay rutas asignadas",
-                        Toast.LENGTH_LONG
-                    ).show()
-                }
-            }
-
-            _lstRutas.value = rutas.map {
-                RutaCamionItem(
-                    it.camion,
-                    it.estatus,
-                    it.idRuta,
-                    it.nombre,
-                    it.tipoRuta,
-                    it.turno
-                )
-            }
+            val rutas = repository.obtenerRutasActivas()
+            _lstRutas.value = rutas
         }
     }
 
-    fun guardarRutaSeleccionada(idRuta: String, nombreRuta: String) {
-        sharedPreferences.edit().putString("idRuta", idRuta).apply()
+    fun guardarRutaSeleccionada(idRuta: String) {
+        repository.guardarRutaSeleccionada(idRuta)
+    }
+
+    suspend fun getTotalNoProcesados(): Int {
+        return withContext(Dispatchers.IO) {
+            repository.getTotalNoProcesados()
+        }
     }
 }

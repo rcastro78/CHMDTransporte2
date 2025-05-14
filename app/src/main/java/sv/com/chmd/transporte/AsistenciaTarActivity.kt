@@ -88,6 +88,8 @@ import sv.com.chmd.transporte.composables.AsistenciasComposable
 import sv.com.chmd.transporte.composables.ConfirmarInasistenciaDialog
 import sv.com.chmd.transporte.composables.ConfirmarProcesoCompletoDialog
 import sv.com.chmd.transporte.composables.SearchBarAlumnos
+import sv.com.chmd.transporte.db.AsistenciaDAO
+import sv.com.chmd.transporte.db.RutaDAO
 import sv.com.chmd.transporte.db.TransporteDB
 import sv.com.chmd.transporte.model.AlumnoRutaDiferenteItem
 import sv.com.chmd.transporte.model.Asistencia
@@ -167,10 +169,11 @@ class AsistenciaTarActivity : TransporteActivity() {
             onError = {})
     }
 
-    /*
+
     fun getAsistencia(){
 
         if(hayConexion()) {
+            insertaRegistros(idRuta.toString(),"0","2")
             asistenciaViewModel.getAsistencia(idRuta.toString(), token!!,
                 onSuccess = { it ->
                     lstAlumnos.clear()
@@ -189,8 +192,9 @@ class AsistenciaTarActivity : TransporteActivity() {
             CoroutineScope(Dispatchers.IO).launch {
                 val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
                 val data = db.iAsistenciaDAO.getAsistenciaTarde(idRuta.toString())
-                withContext(Dispatchers.Main){
 
+                withContext(Dispatchers.Main){
+                    //Toast.makeText(this@AsistenciaTarActivity,"Total: ${data.size} para la ruta $idRuta",Toast.LENGTH_LONG).show()
                     val asistenciaList: Collection<Asistencia> = data.map { asistenciaDAO ->
                         Asistencia(
                             tarjeta = asistenciaDAO.tarjeta,
@@ -216,7 +220,10 @@ class AsistenciaTarActivity : TransporteActivity() {
                             orden_in = asistenciaDAO.ordenIn,
                             orden_out = asistenciaDAO.ordenOut,
                             salida = asistenciaDAO.salida,
-                            tipo_asistencia = ""  // Valor predeterminado
+                            tipo_asistencia = "",  // Valor predeterminado,
+                            orden_especial = "0",
+                            orden_in_1 = asistenciaDAO.ordenIn1,
+                            orden_out_1 = asistenciaDAO.ordenOut1
                         )
                     }
                     lstAlumnos.addAll(asistenciaList)
@@ -230,80 +237,9 @@ class AsistenciaTarActivity : TransporteActivity() {
         }
 
     }
-*/
 
-    fun getAsistencia() {
-        if (hayConexion()) {
-            CoroutineScope(Dispatchers.IO).launch {
-                asistenciaViewModel.getAsistencia(idRuta.toString(), token!!)
-                    .catch {
-                        withContext(Dispatchers.Main) {
-                            Toast.makeText(
-                                this@AsistenciaTarActivity,
-                                "Ocurrió un error al tratar de obtener los datos",
-                                Toast.LENGTH_LONG
-                            ).show()
-                        }
-                    }
-                    .collect { asistenciaList ->
-                        withContext(Dispatchers.Main) {
-                            lstAlumnos.clear()
-                            lstAlumnos.addAll(asistenciaList)
 
-                            lstAlumnos.removeAll { it.asistencia.toIntOrNull() == 0 }
 
-                            ascensos = lstAlumnos.count { it.ascenso_t == "1" && (it.salida.toIntOrNull() ?: 0) < 2 }
-                            inasistencias = lstAlumnos.count { it.ascenso_t == "2" && it.descenso_t == "2" }
-                            totalidad = lstAlumnos.count { it.asistencia == "1" }
-                        }
-                    }
-            }
-        } else {
-            // Modo offline
-            lstAlumnos.clear()
-            CoroutineScope(Dispatchers.IO).launch {
-                val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
-                val data = db.iAsistenciaDAO.getAsistenciaTarde(idRuta.toString())
-
-                val asistenciaList = data.map { asistenciaDAO ->
-                    Asistencia(
-                        tarjeta = asistenciaDAO.tarjeta,
-                        ascenso = asistenciaDAO.ascenso,
-                        ascenso_t = asistenciaDAO.ascenso_t ?: "0",
-                        asistencia = asistenciaDAO.asistencia,
-                        descenso = asistenciaDAO.descenso,
-                        descenso_t = asistenciaDAO.descenso_t,
-                        domicilio = asistenciaDAO.domicilio,
-                        domicilio_s = asistenciaDAO.domicilio_s,
-                        estatus = "", // Valor predeterminado
-                        fecha = "", // Valor predeterminado
-                        foto = asistenciaDAO.foto,
-                        grado = asistenciaDAO.grado,
-                        grupo = asistenciaDAO.grupo,
-                        hora_manana = asistenciaDAO.horaManana,
-                        hora_regreso = asistenciaDAO.horaRegreso,
-                        id_alumno = asistenciaDAO.idAlumno,
-                        id_ruta_h = asistenciaDAO.idRuta,
-                        id_ruta_h_s = "", // Valor predeterminado
-                        nivel = asistenciaDAO.nivel,
-                        nombre = asistenciaDAO.nombreAlumno,
-                        orden_in = asistenciaDAO.ordenIn,
-                        orden_out = asistenciaDAO.ordenOut,
-                        salida = asistenciaDAO.salida,
-                        tipo_asistencia = "" // Valor predeterminado
-                    )
-                }
-
-                withContext(Dispatchers.Main) {
-                    lstAlumnos.addAll(asistenciaList)
-                    lstAlumnos.removeAll { it.asistencia.toIntOrNull() == 0 }
-                    ascensos = lstAlumnos.count { it.ascenso_t == "1" && (it.salida.toIntOrNull() ?: 0) < 2 }
-                    inasistencias = lstAlumnos.count { it.ascenso_t == "2" && it.descenso_t == "2" }
-                    totalidad = lstAlumnos.count { it.asistencia == "1" }
-                }
-            }
-        }
-    }
 
     @Composable
     @Preview(showBackground = true)
@@ -406,6 +342,7 @@ class AsistenciaTarActivity : TransporteActivity() {
                                 asistencia.hora_regreso,
                                 asistencia.nombre,
                                 asistencia.orden_out,
+                                asistencia.orden_out_1,
                                 asistencia.domicilio_s,
                                 foto,
                                 asistencia.ascenso_t,
@@ -1009,6 +946,91 @@ class AsistenciaTarActivity : TransporteActivity() {
                 },
                 properties = DialogProperties(usePlatformDefaultWidth = false) // Usar el ancho del contenido
             )
+        }
+    }
+
+
+    fun insertaRegistros(id_ruta: String, estatus:String, turno:String){
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
+            if (estatus.toInt() < 2)
+                db.iAsistenciaDAO.eliminaAsistencia(id_ruta)
+            asistenciaViewModel.getAsistencia(id_ruta, "",
+                onSuccess = { lstAsistencia ->
+                    lstAsistencia.forEach { alumno ->
+                        var horaReg = ""
+                        if (alumno.hora_regreso == null) {
+                            horaReg = ""
+                        } else {
+                            horaReg = alumno.hora_regreso
+                        }
+
+
+                        var tarjeta = ""
+                        if (alumno.tarjeta == null) {
+                            tarjeta = ""
+                        } else {
+                            tarjeta = alumno.tarjeta
+                        }
+
+
+                        var orden_out = ""
+                        if (alumno.orden_out == null) {
+                            orden_out = "0"
+                        } else {
+                            orden_out = alumno.orden_out
+                        }
+
+                        var orden_in = ""
+                        if (alumno.orden_in == null) {
+                            orden_in = "0"
+                        } else {
+                            orden_in = alumno.orden_in
+                        }
+
+                        var especial = "0"
+                        if (orden_out.toInt() > 900 && alumno.salida.toInt() < 2) {
+                            especial = "1"
+                        }
+
+                        val a = AsistenciaDAO(
+                            0,
+                            id_ruta,
+                            tarjeta,
+                            alumno.id_alumno,
+                            alumno.nombre,
+                            alumno.domicilio,
+                            alumno.hora_manana,
+                            horaReg,
+                            alumno.ascenso,
+                            alumno.descenso,
+                            alumno.domicilio_s,
+                            alumno.grupo,
+                            alumno.grado,
+                            alumno.nivel,
+                            alumno.foto,
+                            false,
+                            false,
+                            alumno.ascenso_t!!,
+                            alumno.descenso_t,
+                            alumno.salida,
+                            orden_in,
+                            orden_out,
+                            false,
+                            false,
+                            0,
+                            alumno.asistencia,
+                            "",
+                            especial,
+                            alumno.salida,
+                            alumno.orden_in_1.toString(),
+                            alumno.orden_out_1.toString(),
+                        )
+                        db.iAsistenciaDAO.guardaAsistencia(a)
+                    }
+                },
+                onError = {})
+
         }
     }
 

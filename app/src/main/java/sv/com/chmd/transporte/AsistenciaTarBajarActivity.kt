@@ -70,6 +70,7 @@ import sv.com.chmd.transporte.composables.AlumnoOtraRutaComposable
 import sv.com.chmd.transporte.composables.AsistenciasComposable
 import sv.com.chmd.transporte.composables.AsistenciasDescensoComposable
 import sv.com.chmd.transporte.composables.SearchBarAlumnos
+import sv.com.chmd.transporte.db.AsistenciaDAO
 import sv.com.chmd.transporte.db.TransporteDB
 import sv.com.chmd.transporte.model.AlumnoRutaDiferenteItem
 import sv.com.chmd.transporte.model.Asistencia
@@ -147,6 +148,7 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
 
     fun getAsistencia(){
         if(hayConexion()) {
+            insertaRegistros(idRuta.toString(),"1","2")
             asistenciaViewModel.getAsistenciaBajar(idRuta.toString(), token.toString(),
                 onSuccess = { it ->
                     lstAlumnos.clear()
@@ -305,6 +307,7 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                                 lst.hora_regreso,
                                 lst.nombre,
                                 lst.orden_out,
+                                lst.orden_out_1,
                                 lst.domicilio_s,
                                 foto,
                                 lst.ascenso_t,
@@ -752,6 +755,93 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                 },
                 properties = DialogProperties(usePlatformDefaultWidth = false) // Usar el ancho del contenido
             )
+        }
+    }
+
+    fun insertaRegistros(id_ruta: String, estatus:String, turno:String){
+        CoroutineScope(Dispatchers.IO).launch {
+            val db = TransporteDB.getInstance(this@AsistenciaTarBajarActivity)
+            if (estatus.toInt() < 2)
+                db.iAsistenciaDAO.eliminaAsistencia(id_ruta)
+            asistenciaViewModel.getAsistencia(id_ruta, "",
+                onSuccess = { lstAsistencia ->
+                    Log.d("SUBIR", lstAsistencia.size.toString())
+                    lstAsistencia.forEach { alumno ->
+                        var horaReg = ""
+                        if (alumno.hora_regreso == null) {
+                            horaReg = ""
+                        } else {
+                            horaReg = alumno.hora_regreso
+                        }
+
+
+                        var tarjeta = ""
+                        if (alumno.tarjeta == null) {
+                            tarjeta = ""
+                        } else {
+                            tarjeta = alumno.tarjeta
+                        }
+
+
+                        var orden_out = ""
+                        if (alumno.orden_out_1 == null) {
+                            orden_out = "0"
+                        } else {
+                            orden_out = alumno.orden_out_1
+                        }
+
+                        var orden_in = ""
+                        if (alumno.orden_in == null) {
+                            orden_in = "0"
+                        } else {
+                            orden_in = alumno.orden_in
+                        }
+
+                        var especial = "0"
+                        if (orden_out.toInt() > 900 && alumno.salida.toInt() < 2) {
+                            especial = "1"
+                        }
+
+                        val a = AsistenciaDAO(
+                            0,
+                            id_ruta,
+                            tarjeta,
+                            alumno.id_alumno,
+                            alumno.nombre,
+                            alumno.domicilio,
+                            alumno.hora_manana,
+                            horaReg,
+                            alumno.ascenso,
+                            alumno.descenso,
+                            alumno.domicilio_s,
+                            alumno.grupo,
+                            alumno.grado,
+                            alumno.nivel,
+                            alumno.foto,
+                            false,
+                            false,
+                            alumno.ascenso_t!!,
+                            alumno.descenso_t,
+                            alumno.salida,
+                            orden_in,
+                            orden_out,
+                            false,
+                            false,
+                            0,
+                            alumno.asistencia,
+                            "",
+                            especial,
+                            alumno.salida,
+                            alumno.orden_in_1.toString(),
+                            alumno.orden_out_1.toString()
+                        )
+                        db.iAsistenciaDAO.guardaAsistencia(a)
+                    }
+                },
+                onError = {
+                    Log.d("ERROR", it.message.toString())
+                })
+
         }
     }
 

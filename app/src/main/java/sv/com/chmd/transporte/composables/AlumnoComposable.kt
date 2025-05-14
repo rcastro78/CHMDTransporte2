@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -193,13 +194,15 @@ fun AlumnoAsistenciaManComposable(
     idRuta:String?="0",
     hora: String? = "08:00",
     nombre: String? = "Juan Perez",
-    parada: String? = "Tecamachalco",
+    parada: String? = "1",
     direccion: String? = "Av. 12 de octubre",
     imageUrl: String? = "",
     ascenso:String?="0",
     descenso:String?="0",
     asistencia:String?="0",
     modifier: Modifier = Modifier,
+    ordenIn:String?="0",
+    ordenIn1:String?="0",
     onImageClick: (String, String) -> Unit = { _: String, _: String -> }, // Pasar idAlumno como parámetro
     onInasistenciaClick: (String, String) -> Unit = { _: String, _: String -> } // Pasar idAlumno como parámetro
 ) {
@@ -241,6 +244,8 @@ fun AlumnoAsistenciaManComposable(
                     when {
                         asistencia == "2" -> colorResource(R.color.aqua)
                         asistencia == "0" -> colorResource(R.color.rojoInasistencia)
+                        ordenIn1!!.toInt() > 900 && ascenso == "0" -> colorResource(R.color.rosado)
+                        ordenIn1!!.toInt() > 900 && ascenso == "1" -> colorResource(R.color.amarillo)
                         ascenso == "0" && descenso == "0" -> colorResource(R.color.white)
                         ascenso == "1" && descenso == "0" -> colorResource(R.color.amarillo)
                         ascenso == "2" && descenso == "2" -> colorResource(R.color.rosado)
@@ -295,7 +300,12 @@ fun AlumnoAsistenciaManComposable(
                         contentScale = ContentScale.Crop
                     )
 
-
+                    if(ordenIn1!!.toInt() >= 900)
+                        Image(painterResource(id =R.drawable.star),
+                            contentDescription = "estrella",
+                            modifier = Modifier.size(16.dp)
+                                .align(Alignment.BottomEnd)
+                        )
 
                 }
                 // Datos del alumno
@@ -466,6 +476,7 @@ fun AlumnoAsistenciaTarComposable(
     hora: String? = "08:00",
     nombre: String? = "Juan Perez",
     orden_out: String? = "1",
+    orden_out_1: String? = "1",
     direccion: String? = "Av. 13 de octubre",
     imageUrl: String? = "",
     ascenso_t:String?="0",
@@ -492,8 +503,8 @@ fun AlumnoAsistenciaTarComposable(
                     when {
                         ascenso_t == "0" && descenso_t == "0" && salida == "3" -> colorResource(R.color.salio)
                         ascenso_t == "0" && descenso_t == "0" && salida == "2" -> colorResource(R.color.salida)
-                        orden_out!!.toInt() > 900 && ascenso_t == "0" -> colorResource(R.color.rosado)
-                        orden_out!!.toInt() > 900 && ascenso_t == "1" -> colorResource(R.color.amarillo)
+                        orden_out_1!!.toInt() > 900 && ascenso_t == "0" -> colorResource(R.color.rosado)
+                        orden_out_1!!.toInt() > 900 && ascenso_t == "1" -> colorResource(R.color.amarillo)
                         ascenso_t == "0" && descenso_t == "0" -> colorResource(R.color.white)
                         ascenso_t == "1" && descenso_t == "0" -> colorResource(R.color.amarillo)
                         ascenso_t == "2" && descenso_t == "2" -> colorResource(R.color.rosado)
@@ -546,6 +557,15 @@ fun AlumnoAsistenciaTarComposable(
                     Image(painterResource(id =R.drawable.footstep_verde), contentDescription = "huellas"
                     )
 
+                    if(orden_out_1!!.toInt() > 900)
+                        Image(painterResource(id =R.drawable.star),
+                            contentDescription = "estrella",
+                            modifier = Modifier.size(16.dp)
+                                .align(Alignment.BottomEnd)
+                    )
+
+
+
                 }
                 // Datos del alumno
                 Box(
@@ -563,7 +583,7 @@ fun AlumnoAsistenciaTarComposable(
                                 .weight(0.2f)
                         ) {
                             Text(
-                                text = orden_out ?: "",
+                                text = orden_out!!,
                                 modifier = Modifier
                                     .padding(start = 12.dp, end = 12.dp)
                                     .weight(1f),
@@ -574,7 +594,7 @@ fun AlumnoAsistenciaTarComposable(
                             )
 
                             Text(
-                                text = hora ?: "",
+                                text = hora!!,
                                 modifier = Modifier
                                     .padding(start = 12.dp, end = 12.dp)
                                     .weight(1f),
@@ -695,6 +715,7 @@ fun AlumnoAsistenciaTarBajarComposable(
     hora: String? = "08:00",
     nombre: String? = "Juan Perez",
     orden_out: String? = "1",
+    orden_out1: String? = "1",
     direccion: String? = "Av. 12 de octubre",
     imageUrl: String? = "",
     ascenso_t:String?="0",
@@ -745,8 +766,8 @@ fun AlumnoAsistenciaTarBajarComposable(
 
                         ascenso_t == "0" && descenso_t == "0" && salida == "3" -> colorResource(R.color.salio)
                         ascenso_t == "0" && descenso_t == "0" && salida == "2" -> colorResource(R.color.salida)
-                        orden_out!!.toInt() > 900 && ascenso_t == "0" -> colorResource(R.color.rosado)
-                        orden_out!!.toInt() > 900 && ascenso_t == "1" && descenso_t == "1" -> colorResource(R.color.verde)
+                        orden_out1!!.toInt() > 900 && ascenso_t == "0" -> colorResource(R.color.rosado)
+                        orden_out1!!.toInt() > 900 && ascenso_t == "1" && descenso_t == "1" -> colorResource(R.color.verde)
                         ascenso_t == "0" && descenso_t == "0" -> colorResource(R.color.white)
                         ascenso_t == "1" && descenso_t == "0" -> colorResource(R.color.amarillo)
                         ascenso_t == "2" && descenso_t == "2" -> colorResource(R.color.rojoInasistencia)
@@ -789,6 +810,11 @@ fun AlumnoAsistenciaTarBajarComposable(
                         Image(painterResource(id =R.drawable.footstep_verde), contentDescription = "huellas"
                         )
 
+                    if(orden_out1!!.toInt() > 900)
+                        Image(painterResource(id =R.drawable.star),
+                            contentDescription = "estrella",
+                            modifier = Modifier.size(16.dp)
+                                .align(Alignment.BottomEnd))
                 }
                 // Datos del alumno
                 Box(
@@ -806,7 +832,9 @@ fun AlumnoAsistenciaTarBajarComposable(
                                 .weight(0.2f)
                         ) {
                             Text(
-                                text = orden_out ?: "",
+
+                                text = orden_out.toString(),
+                                //text = orden_out.toString(),
                                 modifier = Modifier
                                     .padding(start = 12.dp, end = 12.dp)
                                     .weight(1f),
@@ -816,8 +844,9 @@ fun AlumnoAsistenciaTarBajarComposable(
                                 overflow = TextOverflow.Ellipsis
                             )
 
+
                             Text(
-                                text = hora ?: "",
+                                text = hora!!,
                                 modifier = Modifier
                                     .padding(start = 12.dp, end = 12.dp)
                                     .weight(1f),
@@ -929,8 +958,14 @@ fun AlumnoAsistenciaTarBajarComposable(
                             style = setAlumnoTextStyle(LocalContext.current),
                             fontFamily = nunitoBold
                         )
+
+
                     }
+
+
                 }
+
+
 
 
 
@@ -947,12 +982,13 @@ fun AlumnoAsistenciaManBajarComposable(
     idRuta:String?="0",
     hora: String? = "08:00",
     nombre: String? = "Juan Perez",
-    parada: String? = "Tecamachalco",
+    parada: String? = "1",
     direccion: String? = "Av. 12 de octubre",
     imageUrl: String? = "",
     ascenso:String?="0",
     descenso:String?="0",
     asistencia:String?="0",
+    orden_in_1:String?="0",
     modifier: Modifier = Modifier,
     onImageClick: (String, String) -> Unit = { _: String, _: String -> }, // Pasar idAlumno como parámetro
 
@@ -995,6 +1031,8 @@ fun AlumnoAsistenciaManBajarComposable(
                         ascenso == "1" && descenso == "0" -> colorResource(R.color.amarillo)
                         ascenso == "2" && descenso == "2" -> colorResource(R.color.rosado)
                         ascenso == "1" && descenso == "1" -> colorResource(R.color.verde)
+                        orden_in_1!!.toInt() > 900 && ascenso == "0" -> colorResource(R.color.rosado)
+                        orden_in_1!!.toInt() > 900 && ascenso == "1" -> colorResource(R.color.amarillo)
                         asistencia == "2" -> colorResource(R.color.aqua)
                         asistencia == "0" && ascenso == "0" && descenso == "0" -> colorResource(R.color.inasistencia)
                         else -> colorResource(android.R.color.transparent) // Color por defecto si no coincide
@@ -1028,6 +1066,13 @@ fun AlumnoAsistenciaManBajarComposable(
                         error = painterResource(id = R.drawable.usuario),
                         contentScale = ContentScale.Crop
                     )
+
+                    if(orden_in_1!!.toInt() > 900)
+                        Image(painterResource(id =R.drawable.star),
+                            contentDescription = "estrella",
+                            modifier = Modifier.size(16.dp)
+                                .align(Alignment.BottomEnd)
+                        )
                 }
                 // Datos del alumno
                 Box(
