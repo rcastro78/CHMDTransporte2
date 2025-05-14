@@ -367,6 +367,8 @@ fun getAsistencia(){
                                 asistencia.descenso,
                                 asistencia.asistencia,
                                 modifier = Modifier,
+                                ordenIn = asistencia.orden_in,
+                                ordenIn1 = asistencia.orden_in_1,
                                 onImageClick = {idAlumno, ruta ->
                                    if(asistencia.ascenso == "0" && asistencia.asistencia != "0")
                                        if(hayConexion()) {
@@ -725,7 +727,8 @@ fun getAsistencia(){
                                         alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
                                         alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                                         alumno.nivel,alumno.foto,false,false,alumno.ascenso_t!!,alumno.descenso_t,
-                                        alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"")
+                                        alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"",especial,estatusRuta,
+                                        alumno.orden_in_1.toString(),alumno.orden_out_1.toString())
 
                                     db.iAsistenciaDAO.guardaAsistencia(a)
                                 }

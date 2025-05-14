@@ -10,6 +10,7 @@ import sv.com.chmd.transporte.R
 import sv.com.chmd.transporte.db.TransporteDB
 import sv.com.chmd.transporte.networking.ITransporte
 import sv.com.chmd.transporte.networking.TransporteAPI
+import sv.com.chmd.transporte.repository.RutaRepository
 import sv.com.chmd.transporte.services.NetworkChangeReceiver
 import sv.com.chmd.transporte.viewmodel.AsistenciaManViewModel
 import sv.com.chmd.transporte.viewmodel.AsistenciaTarViewModel
@@ -29,6 +30,8 @@ object KoinModules {
         single<ITransporte> {
             TransporteAPI.getCHMDService()!! }
 
+        single { TransporteDB.getInstance(androidContext()) }
+        single { RutaRepository(get(), get(), androidContext()) }
 
         single { NetworkChangeReceiver() }
         viewModel { LoginViewModel(get(),get()) }
@@ -36,6 +39,7 @@ object KoinModules {
         viewModel { AsistenciaTarViewModel(get(),get()) }
         viewModel { ValidarDispositivoViewModel(get(),get()) }
         viewModel { CierreRutaViewModel(get(),get()) }
+        viewModel { SeleccionRutaViewModel(get()) }
 
     }
 

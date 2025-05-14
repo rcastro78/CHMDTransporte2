@@ -303,6 +303,7 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                 asistencia.ascenso,
                                 asistencia.descenso,
                                 asistencia.asistencia,
+                                asistencia.orden_in_1,
                                 modifier = Modifier,
                                 onImageClick = {idAlumno, ruta ->
                                     val db = TransporteDB.getInstance(this@AsistenciaManBajarActivity)
@@ -648,7 +649,9 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                 alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
                                 alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                                 alumno.nivel,alumno.foto,false,false,alumno.ascenso_t!!,alumno.descenso_t,
-                                alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"")
+                                alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"",
+                                especial,estatusRuta,
+                                alumno.orden_in_1.toString(),alumno.orden_out_1.toString())
 
                             db.iAsistenciaDAO.guardaAsistencia(a)
                         }

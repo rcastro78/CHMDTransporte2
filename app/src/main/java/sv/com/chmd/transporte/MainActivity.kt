@@ -281,8 +281,6 @@ class MainActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.weight(1f))
 
                     Button(onClick = {
-
-                    Log.d("Login", "Username: $username, Password: $password")
                     if(rememberMe)
                         sharedPreferences.edit().putString("username",username).apply()
                         //if(username.lowercase().contains("camion")) {
@@ -294,7 +292,7 @@ class MainActivity : ComponentActivity() {
                                     db.iAsistenciaDAO.eliminaAsistenciaCompleta()
                                     lstRutas.forEach { it ->
                                         CoroutineScope(Dispatchers.IO).launch {
-                                            if (it.estatus.toInt() < 2 )
+                                                if (it.estatus.toInt() < 2 )
                                                     db.iAsistenciaDAO.eliminaAsistencia(it.id_ruta)
                                                         if(it.turno == "1")
                                                             asistenciaManViewModel.getAsistenciaMan(it.id_ruta, token,

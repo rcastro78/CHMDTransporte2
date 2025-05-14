@@ -194,13 +194,15 @@ fun AlumnoAsistenciaManComposable(
     idRuta:String?="0",
     hora: String? = "08:00",
     nombre: String? = "Juan Perez",
-    parada: String? = "Tecamachalco",
+    parada: String? = "1",
     direccion: String? = "Av. 12 de octubre",
     imageUrl: String? = "",
     ascenso:String?="0",
     descenso:String?="0",
     asistencia:String?="0",
     modifier: Modifier = Modifier,
+    ordenIn:String?="0",
+    ordenIn1:String?="0",
     onImageClick: (String, String) -> Unit = { _: String, _: String -> }, // Pasar idAlumno como parámetro
     onInasistenciaClick: (String, String) -> Unit = { _: String, _: String -> } // Pasar idAlumno como parámetro
 ) {
@@ -242,6 +244,8 @@ fun AlumnoAsistenciaManComposable(
                     when {
                         asistencia == "2" -> colorResource(R.color.aqua)
                         asistencia == "0" -> colorResource(R.color.rojoInasistencia)
+                        ordenIn1!!.toInt() > 900 && ascenso == "0" -> colorResource(R.color.rosado)
+                        ordenIn1!!.toInt() > 900 && ascenso == "1" -> colorResource(R.color.amarillo)
                         ascenso == "0" && descenso == "0" -> colorResource(R.color.white)
                         ascenso == "1" && descenso == "0" -> colorResource(R.color.amarillo)
                         ascenso == "2" && descenso == "2" -> colorResource(R.color.rosado)
@@ -296,7 +300,12 @@ fun AlumnoAsistenciaManComposable(
                         contentScale = ContentScale.Crop
                     )
 
-
+                    if(ordenIn1!!.toInt() >= 900)
+                        Image(painterResource(id =R.drawable.star),
+                            contentDescription = "estrella",
+                            modifier = Modifier.size(16.dp)
+                                .align(Alignment.BottomEnd)
+                        )
 
                 }
                 // Datos del alumno
@@ -973,12 +982,13 @@ fun AlumnoAsistenciaManBajarComposable(
     idRuta:String?="0",
     hora: String? = "08:00",
     nombre: String? = "Juan Perez",
-    parada: String? = "Tecamachalco",
+    parada: String? = "1",
     direccion: String? = "Av. 12 de octubre",
     imageUrl: String? = "",
     ascenso:String?="0",
     descenso:String?="0",
     asistencia:String?="0",
+    orden_in_1:String?="0",
     modifier: Modifier = Modifier,
     onImageClick: (String, String) -> Unit = { _: String, _: String -> }, // Pasar idAlumno como parámetro
 
@@ -1021,6 +1031,8 @@ fun AlumnoAsistenciaManBajarComposable(
                         ascenso == "1" && descenso == "0" -> colorResource(R.color.amarillo)
                         ascenso == "2" && descenso == "2" -> colorResource(R.color.rosado)
                         ascenso == "1" && descenso == "1" -> colorResource(R.color.verde)
+                        orden_in_1!!.toInt() > 900 && ascenso == "0" -> colorResource(R.color.rosado)
+                        orden_in_1!!.toInt() > 900 && ascenso == "1" -> colorResource(R.color.amarillo)
                         asistencia == "2" -> colorResource(R.color.aqua)
                         asistencia == "0" && ascenso == "0" && descenso == "0" -> colorResource(R.color.inasistencia)
                         else -> colorResource(android.R.color.transparent) // Color por defecto si no coincide
@@ -1054,6 +1066,13 @@ fun AlumnoAsistenciaManBajarComposable(
                         error = painterResource(id = R.drawable.usuario),
                         contentScale = ContentScale.Crop
                     )
+
+                    if(orden_in_1!!.toInt() > 900)
+                        Image(painterResource(id =R.drawable.star),
+                            contentDescription = "estrella",
+                            modifier = Modifier.size(16.dp)
+                                .align(Alignment.BottomEnd)
+                        )
                 }
                 // Datos del alumno
                 Box(
