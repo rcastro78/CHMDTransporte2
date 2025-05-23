@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
@@ -42,6 +43,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -60,16 +62,20 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import sv.com.chmd.transporte.AsistenciaTarActivity
 import sv.com.chmd.transporte.composables.AlumnoAsistenciaTarBajarComposable
 import sv.com.chmd.transporte.composables.AlumnoAsistenciaTarComposable
 import sv.com.chmd.transporte.composables.AlumnoOtraRutaComposable
 import sv.com.chmd.transporte.composables.AsistenciasComposable
 import sv.com.chmd.transporte.composables.AsistenciasDescensoComposable
 import sv.com.chmd.transporte.composables.SearchBarAlumnos
+import sv.com.chmd.transporte.composables.SlowNetworkScreen
 import sv.com.chmd.transporte.db.AsistenciaDAO
 import sv.com.chmd.transporte.db.TransporteDB
 import sv.com.chmd.transporte.model.AlumnoRutaDiferenteItem
@@ -103,6 +109,8 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
         registerReceiver(networkChangeReceiver, filter)
     }
 
+
+
     override fun onStop() {
         super.onStop()
         unregisterReceiver(networkChangeReceiver)
@@ -111,6 +119,14 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                Intent(this@AsistenciaTarBajarActivity, SeleccionRutaActivity::class.java).also {
+                    startActivity(it)
+                }
+                finish()
+            }
+        })
         token = sharedPreferences.getString("token", "")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(
@@ -126,12 +142,16 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
             CHMDTransporteTheme {
                 idRuta = intent.getStringExtra("idRuta")
                 nombreRuta = intent.getStringExtra("nombreRuta")
-                getAsistencia()
+                val isSlowNetwork by transporteViewModel.isSlowNetwork.collectAsState()
+                if (isSlowNetwork) {
+                    SlowNetworkScreen(this)
+                } else {
+                    if(hayConexion())
+                        getAlumnosOtraRuta()
 
-                if(hayConexion())
-                    getAlumnosOtraRuta()
-
-                AsistenciaScreen(idRuta)
+                    getAsistencia()
+                    AsistenciaScreen(idRuta)
+                }
             }
         }
     }
@@ -146,6 +166,7 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
             onError = {})
     }
 
+    /*
     fun getAsistencia(){
         if(hayConexion()) {
             insertaRegistros(idRuta.toString(),"1","2")
@@ -209,6 +230,89 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
 
         }
     }
+*/
+
+    fun getAsistencia() {
+        if (hayConexion()) {
+            insertaRegistros(idRuta.toString(), "1", "2")
+
+            CoroutineScope(Dispatchers.IO).launch {
+                asistenciaViewModel.getAsistenciaBajarFlow(idRuta.toString(), token!!)
+                    .catch { e ->
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(
+                                this@AsistenciaTarBajarActivity,
+                                "Error: ${e.message}",
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
+                    }
+                    .collect { it ->
+                        withContext(Dispatchers.Main) {
+                            lstAlumnos.clear()
+                            lstAlumnos.addAll(it)
+                            lstAlumnos.removeIf { it.ascenso_t == "2" && it.descenso_t == "2" }
+
+                            val noVan = lstAlumnos.count {
+                                it.ascenso_t == "0" && it.descenso_t == "0" && it.asistencia == "0"
+                            }
+                            totalidad = lstAlumnos.count { it.asistencia == "1" } - noVan
+                        }
+                    }
+            }
+
+        } else {
+            // 📴 Offline
+            lstAlumnos.clear()
+            CoroutineScope(Dispatchers.IO).launch {
+                val db = TransporteDB.getInstance(this@AsistenciaTarBajarActivity)
+                val data = db.iAsistenciaDAO.getAlumnosBajarTarde(idRuta.toString())
+
+                withContext(Dispatchers.Main) {
+                    val asistenciaList: Collection<Asistencia> = data.map { asistenciaDAO ->
+                        Asistencia(
+                            tarjeta = asistenciaDAO.tarjeta,
+                            ascenso = asistenciaDAO.ascenso,
+                            ascenso_t = asistenciaDAO.ascenso_t ?: "0",
+                            asistencia = asistenciaDAO.asistencia,
+                            descenso = asistenciaDAO.descenso,
+                            descenso_t = asistenciaDAO.descenso_t,
+                            domicilio = asistenciaDAO.domicilio,
+                            domicilio_s = asistenciaDAO.domicilio_s,
+                            estatus = "",
+                            fecha = "",
+                            foto = asistenciaDAO.foto,
+                            grado = asistenciaDAO.grado,
+                            grupo = asistenciaDAO.grupo,
+                            hora_manana = asistenciaDAO.horaManana,
+                            hora_regreso = asistenciaDAO.horaRegreso,
+                            id_alumno = asistenciaDAO.idAlumno,
+                            id_ruta_h = asistenciaDAO.idRuta,
+                            id_ruta_h_s = "",
+                            nivel = asistenciaDAO.nivel,
+                            nombre = asistenciaDAO.nombreAlumno,
+                            orden_in = asistenciaDAO.ordenIn,
+                            orden_out = asistenciaDAO.ordenOut,
+                            salida = asistenciaDAO.salida,
+                            tipo_asistencia = "",
+                            orden_especial = "0",
+                            orden_in_1 = asistenciaDAO.ordenIn1,
+                            orden_out_1 = asistenciaDAO.ordenOut1
+                        )
+                    }
+                    lstAlumnos.addAll(asistenciaList)
+                    lstAlumnos.removeIf { it.ascenso_t == "2" && it.descenso_t == "2" }
+                    lstAlumnos.removeIf { it.salida == "2" || it.salida == "3" }
+
+                    val noVan = lstAlumnos.count {
+                        it.ascenso_t == "0" && it.descenso_t == "0" && it.asistencia == "0"
+                    }
+                    totalidad = lstAlumnos.count { it.asistencia == "1" } - noVan
+                }
+            }
+        }
+    }
+
 
     @Composable
     @Preview(showBackground = true)
@@ -234,6 +338,7 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                 Intent(this@AsistenciaTarBajarActivity, SeleccionRutaActivity::class.java).also {
                     startActivity(it)
                 }
+                finish()
             }, onUpdateClick = {
                 getAsistencia() },
                 onOtrasRutasClick = {
@@ -365,8 +470,10 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                                                     -1,
                                                     getCurrentTime())
                                             }
-                                            Thread.sleep(1000)
-                                            getAsistencia()
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                delay(1000)
+                                                getAsistencia()
+                                            }
                                         }
                                     }
 
@@ -392,8 +499,10 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                                                     -1,
                                                     getCurrentTime())
                                             }
-                                            Thread.sleep(1000)
-                                            getAsistencia()
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                delay(1000)
+                                                getAsistencia()
+                                            }
 
                                         }
 
@@ -501,7 +610,16 @@ class AsistenciaTarBajarActivity : TransporteActivity() {
                                                 startActivity(it)
                                             }
                                         },
-                                        onError = {})
+                                        onError = {it->
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                Toast.makeText(
+                                                    this@AsistenciaTarBajarActivity,
+                                                    "Error al cerrar la ruta: $it.message",
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                            }
+
+                                        })
                                 }
                             } else {
                                 Toast.makeText(

@@ -1,5 +1,6 @@
 package sv.com.chmd.transporte
 
+import android.Manifest
 import android.app.AlertDialog
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -12,7 +13,11 @@ import java.util.*
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-
+import android.telephony.TelephonyManager
+import androidx.annotation.RequiresPermission
+import org.koin.androidx.viewmodel.ext.android.viewModel
+import sv.com.chmd.transporte.viewmodel.TransporteViewModel
+import kotlin.getValue
 
 
 open class TransporteActivity : ComponentActivity() {
@@ -20,13 +25,13 @@ open class TransporteActivity : ComponentActivity() {
     private lateinit var mRunnable: Runnable
     private var mTime: Long = 1000 * 60 * 60  // Timer de 1 hora
     private lateinit var connectivityReceiver: ConnectivityReceiver
-
+    val transporteViewModel: TransporteViewModel by viewModel()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setTimeOut()
 
         // Registrar el receptor para cambios en la conectividad
-        connectivityReceiver = ConnectivityReceiver()
+        connectivityReceiver = ConnectivityReceiver(transporteViewModel)
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         registerReceiver(connectivityReceiver, filter)
 
@@ -110,10 +115,31 @@ open class TransporteActivity : ComponentActivity() {
     }
 
     // Receptor para detectar cambios en la conectividad de la red
-    private inner class ConnectivityReceiver : BroadcastReceiver() {
+    private inner class ConnectivityReceiver(val viewModel: TransporteViewModel) : BroadcastReceiver() {
+        @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
         override fun onReceive(context: Context?, intent: Intent?) {
             if (!hayConexion()) {
                 mostrarDialogoSinConexion() // Mostrar diálogo si no hay conexión
+            }else{
+                verificarRedLenta(context!!)
+            }
+        }
+
+        @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
+        private fun verificarRedLenta(context: Context) {
+            val telephonyManager = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            when (telephonyManager.networkType) {
+                TelephonyManager.NETWORK_TYPE_EDGE,
+                TelephonyManager.NETWORK_TYPE_GPRS,
+                TelephonyManager.NETWORK_TYPE_CDMA,
+                TelephonyManager.NETWORK_TYPE_1xRTT,
+                TelephonyManager.NETWORK_TYPE_IDEN -> {
+                    viewModel.setSlowNetwork(true)
+                }
+
+                else -> {
+                    viewModel.setSlowNetwork(false)
+                }
             }
         }
     }

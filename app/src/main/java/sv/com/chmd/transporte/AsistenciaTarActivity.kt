@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.core.LinearEasing
@@ -56,6 +57,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
@@ -76,11 +78,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import sv.com.chmd.transporte.AsistenciaManBajarActivity
 import sv.com.chmd.transporte.composables.AlumnoAsistenciaManComposable
 import sv.com.chmd.transporte.composables.AlumnoAsistenciaTarComposable
 import sv.com.chmd.transporte.composables.AlumnoOtraRutaComposable
@@ -88,6 +92,7 @@ import sv.com.chmd.transporte.composables.AsistenciasComposable
 import sv.com.chmd.transporte.composables.ConfirmarInasistenciaDialog
 import sv.com.chmd.transporte.composables.ConfirmarProcesoCompletoDialog
 import sv.com.chmd.transporte.composables.SearchBarAlumnos
+import sv.com.chmd.transporte.composables.SlowNetworkScreen
 import sv.com.chmd.transporte.db.AsistenciaDAO
 import sv.com.chmd.transporte.db.RutaDAO
 import sv.com.chmd.transporte.db.TransporteDB
@@ -107,7 +112,6 @@ import java.util.Locale
 
 class AsistenciaTarActivity : TransporteActivity() {
     private val asistenciaViewModel: AsistenciaTarViewModel by viewModel()
-    private val cierreRutaViewModel: CierreRutaViewModel by viewModel()
     private val networkChangeReceiver: NetworkChangeReceiver by inject()
     private val sharedPreferences:SharedPreferences by inject()
     var lstAlumnos = mutableStateListOf<Asistencia>()
@@ -126,6 +130,7 @@ class AsistenciaTarActivity : TransporteActivity() {
         registerReceiver(networkChangeReceiver, filter)
     }
 
+
     override fun onStop() {
         super.onStop()
         unregisterReceiver(networkChangeReceiver)
@@ -135,6 +140,14 @@ class AsistenciaTarActivity : TransporteActivity() {
         super.onCreate(savedInstanceState)
         token = sharedPreferences.getString("token","")
         enableEdgeToEdge()
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                Intent(this@AsistenciaTarActivity, SeleccionRutaActivity::class.java).also {
+                    startActivity(it)
+                }
+                finish()
+            }
+        })
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(
                 Intent(
@@ -149,12 +162,16 @@ class AsistenciaTarActivity : TransporteActivity() {
             CHMDTransporteTheme {
                 idRuta = intent.getStringExtra("idRuta")
                 nombreRuta = intent.getStringExtra("nombreRuta")
-                getAsistencia()
+                val isSlowNetwork by transporteViewModel.isSlowNetwork.collectAsState()
+                if (isSlowNetwork) {
+                    SlowNetworkScreen(this)
+                } else {
+                    if(hayConexion())
+                        getAlumnosOtraRuta()
 
-                if(hayConexion())
-                    getAlumnosOtraRuta()
-
-                AsistenciaScreen(idRuta)
+                    getAsistencia()
+                    AsistenciaScreen(idRuta)
+                }
             }
         }
     }
@@ -170,6 +187,7 @@ class AsistenciaTarActivity : TransporteActivity() {
     }
 
 
+    /*
     fun getAsistencia(){
 
         if(hayConexion()) {
@@ -237,6 +255,84 @@ class AsistenciaTarActivity : TransporteActivity() {
         }
 
     }
+*/
+
+    fun getAsistencia() {
+        if (hayConexion()) {
+            insertaRegistros(idRuta.toString(), "0", "2")
+
+            CoroutineScope(Dispatchers.IO).launch {
+                asistenciaViewModel.getAsistenciaFlow(idRuta.toString(), token!!)
+                    .catch { e ->
+                        // Manejo de errores, por ejemplo, mostrar un Toast en el hilo principal
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@AsistenciaTarActivity, "Error: ${e.message}", Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    .collect { it ->
+                        withContext(Dispatchers.Main) {
+                            lstAlumnos.clear()
+                            lstAlumnos.addAll(it)
+
+                            try {
+                                lstAlumnos.removeAll { it.asistencia.toInt() == 0 }
+                            } catch (_: Exception) {}
+
+                            ascensos = it.count { it.ascenso_t == "1" && it.salida.toInt() < 2 }
+                            inasistencias = it.count { it.ascenso_t == "2" && it.descenso_t == "2" }
+                            totalidad = it.count { it.asistencia == "1" }
+                        }
+                    }
+            }
+
+        } else {
+            // 📴 Offline como ya lo tienes
+            lstAlumnos.clear()
+            CoroutineScope(Dispatchers.IO).launch {
+                val db = TransporteDB.getInstance(this@AsistenciaTarActivity)
+                val data = db.iAsistenciaDAO.getAsistenciaTarde(idRuta.toString())
+
+                withContext(Dispatchers.Main) {
+                    val asistenciaList: Collection<Asistencia> = data.map { asistenciaDAO ->
+                        Asistencia(
+                            tarjeta = asistenciaDAO.tarjeta,
+                            ascenso = asistenciaDAO.ascenso,
+                            ascenso_t = asistenciaDAO.ascenso_t ?: "0",
+                            asistencia = asistenciaDAO.asistencia,
+                            descenso = asistenciaDAO.descenso,
+                            descenso_t = asistenciaDAO.descenso_t,
+                            domicilio = asistenciaDAO.domicilio,
+                            domicilio_s = asistenciaDAO.domicilio_s,
+                            estatus = "",
+                            fecha = "",
+                            foto = asistenciaDAO.foto,
+                            grado = asistenciaDAO.grado,
+                            grupo = asistenciaDAO.grupo,
+                            hora_manana = asistenciaDAO.horaManana,
+                            hora_regreso = asistenciaDAO.horaRegreso,
+                            id_alumno = asistenciaDAO.idAlumno,
+                            id_ruta_h = asistenciaDAO.idRuta,
+                            id_ruta_h_s = "",
+                            nivel = asistenciaDAO.nivel,
+                            nombre = asistenciaDAO.nombreAlumno,
+                            orden_in = asistenciaDAO.ordenIn,
+                            orden_out = asistenciaDAO.ordenOut,
+                            salida = asistenciaDAO.salida,
+                            tipo_asistencia = "",
+                            orden_especial = "0",
+                            orden_in_1 = asistenciaDAO.ordenIn1,
+                            orden_out_1 = asistenciaDAO.ordenOut1
+                        )
+                    }
+                    lstAlumnos.addAll(asistenciaList)
+                    lstAlumnos.removeAll { it.asistencia.toInt() == 0 }
+                    ascensos = lstAlumnos.count { it.ascenso_t == "1" && it.salida.toInt() < 2 }
+                    inasistencias = lstAlumnos.count { it.ascenso_t == "2" && it.descenso_t == "2" }
+                    totalidad = lstAlumnos.count { it.asistencia == "1" }
+                }
+            }
+        }
+    }
 
 
 
@@ -265,6 +361,7 @@ class AsistenciaTarActivity : TransporteActivity() {
                 Intent(this@AsistenciaTarActivity, SeleccionRutaActivity::class.java).also {
                     startActivity(it)
                 }
+                finish()
             }, onUpdateClick = {
                 getAsistencia() },
 
@@ -417,8 +514,10 @@ class AsistenciaTarActivity : TransporteActivity() {
                                                     asistencia.id_alumno, -1, getCurrentTime()
                                                 )
                                             }
-                                            Thread.sleep(1000)
-                                            getAsistencia()
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                delay(1000)
+                                                getAsistencia()
+                                            }
                                         }
 
                                     //Fin caso 1
@@ -460,8 +559,10 @@ class AsistenciaTarActivity : TransporteActivity() {
                                                     asistencia.id_alumno, -1, getCurrentTime()
                                                 )
                                             }
-                                            Thread.sleep(1000)
-                                            getAsistencia()
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                delay(1000)
+                                                getAsistencia()
+                                            }
                                         }
                                     }
 
@@ -502,8 +603,10 @@ class AsistenciaTarActivity : TransporteActivity() {
                                                         asistencia.id_alumno, -1, getCurrentTime()
                                                     )
                                                 }
-                                                Thread.sleep(1000)
-                                                getAsistencia()
+                                                CoroutineScope(Dispatchers.Main).launch {
+                                                    delay(1000)
+                                                    getAsistencia()
+                                                }
                                             }
                                         }
                                     //Fin caso 3
@@ -643,8 +746,10 @@ class AsistenciaTarActivity : TransporteActivity() {
                         CoroutineScope(Dispatchers.IO).launch {
                             db.iAsistenciaDAO.noAsisteTurnoTar(idRuta!!,idAlumnoInasist,-1,getCurrentTime())
                         }
-                        Thread.sleep(1000)
-                        getAsistencia()
+                        CoroutineScope(Dispatchers.Main).launch {
+                            delay(1000)
+                            getAsistencia()
+                        }
                     }
                 }
             )
@@ -713,8 +818,10 @@ class AsistenciaTarActivity : TransporteActivity() {
                     CoroutineScope(Dispatchers.IO).launch {
                         db.iAsistenciaDAO.noAsisteTurnoTar(idRuta.toString(), idAlumnoInasist,-1, getCurrentTime())
                     }
-                    Thread.sleep(1000)
-                    getAsistencia()
+                    CoroutineScope(Dispatchers.Main).launch {
+                        delay(1000)
+                        getAsistencia()
+                    }
                 }
             }
         )

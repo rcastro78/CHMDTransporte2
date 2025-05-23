@@ -16,8 +16,13 @@ interface ITransporte {
     ): Call<List<Usuario>>
 
 
-    @GET("getRutaTransporteCamion.php")
-    fun getRutasCamion(@Query("camion") camion: String?):Call<List<Ruta>>
+    @POST("getRutaTransporteCamion3.php")
+    @FormUrlEncoded
+    fun getRutasCamion(@Field("camion") camion: String?):Call<List<Ruta>>
+
+    @POST("getRutaTransporteCamion2.php")
+    @FormUrlEncoded
+    fun getRutasCamion(@Field("camion") camion: String?, @Field("clave") clave: String?):Call<List<Ruta>>
 
     //Alumnos en ruta
 
@@ -111,7 +116,7 @@ interface ITransporte {
 
     //Cerrar ruta
     @FormUrlEncoded
-    @POST("cerrarRutaTarde2_TEST.php")
+    @POST("cerrarRutaTarde2.php")
     fun cerrarRutaTarde(
         @Field("id_ruta") id_ruta: String?,
         @Field("estatus") estatus: String?

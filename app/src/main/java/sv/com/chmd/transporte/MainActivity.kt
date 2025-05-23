@@ -33,6 +33,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -48,6 +50,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -60,6 +63,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -82,6 +86,7 @@ import sv.com.chmd.transporte.util.nunitoRegular
 import sv.com.chmd.transporte.viewmodel.AsistenciaManViewModel
 import sv.com.chmd.transporte.viewmodel.AsistenciaTarViewModel
 import sv.com.chmd.transporte.viewmodel.LoginViewModel
+import androidx.core.content.edit
 
 class MainActivity : ComponentActivity() {
     private val loginViewModel: LoginViewModel by viewModel()
@@ -125,6 +130,18 @@ class MainActivity : ComponentActivity() {
                 // Request permission
                 requestPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
             }
+
+        }
+
+        when {
+            checkSelfPermission(Manifest.permission.READ_PHONE_STATE) == PackageManager.PERMISSION_GRANTED -> {
+                // Permission is already granted
+            }
+            else -> {
+                // Request permission
+                requestPermissionLauncher.launch(Manifest.permission.READ_PHONE_STATE)
+            }
+
         }
 
 
@@ -151,8 +168,8 @@ class MainActivity : ComponentActivity() {
         }
         var password by remember { mutableStateOf("") }
         var rememberMe by remember { mutableStateOf(sharedPreferences.getBoolean("rememberMe", false)) } // Estado del Checkbox
-
-
+        var passwordVisible by remember { mutableStateOf(false) }
+        val rutasState by loginViewModel.rutasUiState.collectAsState()
         Scaffold(
             topBar = { ToolbarPrincipal() }
         ) { paddingValues ->
@@ -218,25 +235,36 @@ class MainActivity : ComponentActivity() {
                                 "Contraseña",
                                 fontFamily = nunitoRegular
                             )
-                        }, // Aplicar la fuente a la etiqueta
+                        },
                         textStyle = TextStyle(fontFamily = nunitoRegular),
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         shape = RoundedCornerShape(8.dp),
                         leadingIcon = {
                             Icon(
-                                imageVector = Icons.Filled.Lock, // Icono de usuario de Material Icons
-                                contentDescription = "Usuario",
+                                imageVector = Icons.Filled.Lock,
+                                contentDescription = "Contraseña",
                                 tint = colorResource(id = R.color.azulColegio)
                             )
                         },
-                        visualTransformation = PasswordVisualTransformation(), // Oculta el texto para las contraseñas
+                        trailingIcon = {
+                            val image = if (passwordVisible)
+                                Icons.Filled.Visibility
+                            else Icons.Filled.VisibilityOff
+
+                            val description = if (passwordVisible) "Ocultar contraseña" else "Mostrar contraseña"
+
+                            IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                                Icon(imageVector = image, contentDescription = description)
+                            }
+                        },
+                        visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                         colors = TextFieldDefaults.colors(
-                            if (isSystemInDarkTheme()) Color.White else Color.Black, // Fondo transparente
-                            Color.Black, // Texto en negro
-                            focusedIndicatorColor = Color.Transparent, // Sin línea inferior al enfocarse
-                            unfocusedIndicatorColor = Color.Transparent, // Sin línea inferior sin enfocar
-                            disabledIndicatorColor = Color.Transparent // Sin línea inferior cuando está deshabilitado
+                            if (isSystemInDarkTheme()) Color.White else Color.Black,
+                            Color.Black,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
                         )
                     )
 
@@ -283,97 +311,328 @@ class MainActivity : ComponentActivity() {
                     Button(onClick = {
                     if(rememberMe)
                         sharedPreferences.edit().putString("username",username).apply()
-                        //if(username.lowercase().contains("camion")) {
-                        loginViewModel.getRutasCamion(username.lowercase().replace("camion", ""),
-                            onSuccess = { lstRutas ->
-                                val db = TransporteDB.getInstance(this@MainActivity)
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    db.iRutaDAO.delete()
-                                    db.iAsistenciaDAO.eliminaAsistenciaCompleta()
-                                    lstRutas.forEach { it ->
+
+                        if(username.isNotEmpty()) {
+                                loginViewModel.getRutasCamion(
+                                    username.lowercase().replace("camion", ""),
+                                    password.lowercase(),
+                                    onSuccess = { lstRutas ->
+                                        sharedPreferences.edit() {
+                                            putString(
+                                                "auxiliar",
+                                                lstRutas[0].auxiliar
+                                            )
+                                        }
+                                        val db = TransporteDB.getInstance(this@MainActivity)
                                         CoroutineScope(Dispatchers.IO).launch {
-                                                if (it.estatus.toInt() < 2 )
-                                                    db.iAsistenciaDAO.eliminaAsistencia(it.id_ruta)
-                                                        if(it.turno == "1")
-                                                            asistenciaManViewModel.getAsistenciaMan(it.id_ruta, token,
+                                            db.iRutaDAO.delete()
+                                            db.iAsistenciaDAO.eliminaAsistenciaCompleta()
+                                            lstRutas.forEach { it ->
+                                                CoroutineScope(Dispatchers.IO).launch {
+                                                    if (it.estatus.toInt() < 2)
+                                                        db.iAsistenciaDAO.eliminaAsistencia(it.id_ruta)
+                                                    if (it.turno == "1")
+                                                        asistenciaManViewModel.getAsistenciaMan(
+                                                            it.id_ruta, token,
                                                             onSuccess = { lstAsistencia ->
+                                                                lstAsistencia.forEach { alumno ->
+                                                                    var orden_in = ""
+                                                                    if (alumno.orden_in == null) {
+                                                                        orden_in = "0"
+                                                                    } else {
+                                                                        orden_in = alumno.orden_in
+                                                                    }
+
+                                                                    var especial = "0"
+
+                                                                    val a = AsistenciaDAO(
+                                                                        0,
+                                                                        it.id_ruta,
+                                                                        alumno.tarjeta,
+                                                                        alumno.id_alumno,
+                                                                        alumno.nombre,
+                                                                        alumno.domicilio,
+                                                                        alumno.hora_manana,
+                                                                        "",
+                                                                        alumno.ascenso,
+                                                                        alumno.descenso,
+                                                                        alumno.domicilio_s,
+                                                                        alumno.grupo,
+                                                                        alumno.grado,
+                                                                        alumno.nivel,
+                                                                        alumno.foto,
+                                                                        false,
+                                                                        false,
+                                                                        alumno.ascenso_t!!,
+                                                                        alumno.descenso_t,
+                                                                        alumno.salida,
+                                                                        orden_in,
+                                                                        "",
+                                                                        false,
+                                                                        false,
+                                                                        0,
+                                                                        alumno.asistencia,
+                                                                        "",
+                                                                        especial,
+                                                                        "",
+                                                                        alumno.orden_in_1.toString(),
+                                                                        alumno.orden_out_1.toString()
+                                                                    )
+
+                                                                    db.iAsistenciaDAO.guardaAsistencia(a)
+                                                                }
+                                                            },
+                                                            onError = {})
+
+                                                    if (it.turno == "2")
+                                                        asistenciaTarViewModel.getAsistencia(
+                                                            it.id_ruta, token,
+                                                            onSuccess = { lstAsistencia ->
+                                                                lstAsistencia.forEach { alumno ->
+                                                                    var horaReg = ""
+                                                                    if (alumno.hora_regreso == null) {
+                                                                        horaReg = ""
+                                                                    } else {
+                                                                        horaReg = alumno.hora_regreso
+                                                                    }
+
+
+                                                                    var tarjeta = ""
+                                                                    if (alumno.tarjeta == null) {
+                                                                        tarjeta = ""
+                                                                    } else {
+                                                                        tarjeta = alumno.tarjeta
+                                                                    }
+
+
+                                                                    var orden_out = ""
+                                                                    if (alumno.orden_out == null) {
+                                                                        orden_out = "0"
+                                                                    } else {
+                                                                        orden_out = alumno.orden_out
+                                                                    }
+
+                                                                    var orden_in = ""
+                                                                    if (alumno.orden_in == null) {
+                                                                        orden_in = "0"
+                                                                    } else {
+                                                                        orden_in = alumno.orden_in
+                                                                    }
+
+                                                                    var especial = "0"
+                                                                    if (orden_out.toInt() > 900 && alumno.salida.toInt() < 2) {
+                                                                        especial = "1"
+                                                                    }
+
+                                                                    val a = AsistenciaDAO(
+                                                                        0,
+                                                                        it.id_ruta,
+                                                                        tarjeta,
+                                                                        alumno.id_alumno,
+                                                                        alumno.nombre,
+                                                                        alumno.domicilio,
+                                                                        alumno.hora_manana,
+                                                                        horaReg,
+                                                                        alumno.ascenso,
+                                                                        alumno.descenso,
+                                                                        alumno.domicilio_s,
+                                                                        alumno.grupo,
+                                                                        alumno.grado,
+                                                                        alumno.nivel,
+                                                                        alumno.foto,
+                                                                        false,
+                                                                        false,
+                                                                        alumno.ascenso_t!!,
+                                                                        alumno.descenso_t,
+                                                                        alumno.salida,
+                                                                        orden_in,
+                                                                        orden_out,
+                                                                        false,
+                                                                        false,
+                                                                        0,
+                                                                        alumno.asistencia,
+                                                                        "",
+                                                                        especial
+                                                                    )
+                                                                    db.iAsistenciaDAO.guardaAsistencia(a)
+                                                                }
+                                                            },
+                                                            onError = {})
+                                                    db.iRutaDAO.guardaRutas(
+
+                                                        RutaDAO(
+                                                            0,
+                                                            it.id_ruta,
+                                                            it.nombre_ruta,
+                                                            it.camion,
+                                                            it.turno,
+                                                            it.tipo_ruta,
+                                                            it.estatus,
+                                                            0
+                                                        )
+                                                    )
+                                                }
+                                            }
+
+                                        }
+
+
+                                        Intent(
+                                            this@MainActivity,
+                                            SeleccionRutaActivity::class.java
+                                        ).also {
+                                            startActivity(it)
+                                        }
+
+                                    },
+                                    onError = {
+                                        Toast.makeText(this@MainActivity, "Datos incorrectos", Toast.LENGTH_LONG).show()
+                                    })
+                                }
+
+
+                        //Implementar a futuro
+                        /*if(username.isNotEmpty() && password.isNotEmpty()) {
+                            loginViewModel.getRutasCamion(
+                                username.lowercase().replace("camion", ""),
+                                password.lowercase(),
+                                onSuccess = { lstRutas ->
+                                    val db = TransporteDB.getInstance(this@MainActivity)
+                                    CoroutineScope(Dispatchers.IO).launch {
+                                        db.iRutaDAO.delete()
+                                        db.iAsistenciaDAO.eliminaAsistenciaCompleta()
+                                        lstRutas.forEach { it ->
+                                            CoroutineScope(Dispatchers.IO).launch {
+                                                if (it.estatus.toInt() < 2)
+                                                    db.iAsistenciaDAO.eliminaAsistencia(it.id_ruta)
+                                                if (it.turno == "1")
+                                                    asistenciaManViewModel.getAsistenciaMan(
+                                                        it.id_ruta, token,
+                                                        onSuccess = { lstAsistencia ->
                                                             lstAsistencia.forEach { alumno ->
-                                                            var orden_in=""
-                                                            if(alumno.orden_in == null){
-                                                                orden_in = "0"
-                                                            }else{
-                                                                orden_in = alumno.orden_in
-                                                            }
+                                                                var orden_in = ""
+                                                                if (alumno.orden_in == null) {
+                                                                    orden_in = "0"
+                                                                } else {
+                                                                    orden_in = alumno.orden_in
+                                                                }
 
-                                                            var especial="0"
+                                                                var especial = "0"
 
-                                                            val a = AsistenciaDAO(0,it.id_ruta,alumno.tarjeta,alumno.id_alumno,
-                                                                alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
-                                                                alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
-                                                                alumno.nivel,alumno.foto,false,false,alumno.ascenso_t!!,alumno.descenso_t,
-                                                                alumno.salida,orden_in,"",false,false,0,alumno.asistencia,"",
-                                                                especial,"",alumno.orden_in_1.toString(),
-                                                                alumno.orden_out_1.toString()
+                                                                val a = AsistenciaDAO(
+                                                                    0,
+                                                                    it.id_ruta,
+                                                                    alumno.tarjeta,
+                                                                    alumno.id_alumno,
+                                                                    alumno.nombre,
+                                                                    alumno.domicilio,
+                                                                    alumno.hora_manana,
+                                                                    "",
+                                                                    alumno.ascenso,
+                                                                    alumno.descenso,
+                                                                    alumno.domicilio_s,
+                                                                    alumno.grupo,
+                                                                    alumno.grado,
+                                                                    alumno.nivel,
+                                                                    alumno.foto,
+                                                                    false,
+                                                                    false,
+                                                                    alumno.ascenso_t!!,
+                                                                    alumno.descenso_t,
+                                                                    alumno.salida,
+                                                                    orden_in,
+                                                                    "",
+                                                                    false,
+                                                                    false,
+                                                                    0,
+                                                                    alumno.asistencia,
+                                                                    "",
+                                                                    especial,
+                                                                    "",
+                                                                    alumno.orden_in_1.toString(),
+                                                                    alumno.orden_out_1.toString()
                                                                 )
 
-                                                            db.iAsistenciaDAO.guardaAsistencia(a)
-                                                        }
-                                                    },
-                                                    onError = {})
-
-                                            if(it.turno == "2")
-                                                asistenciaTarViewModel.getAsistencia(it.id_ruta, token,
-                                                    onSuccess = { lstAsistencia ->
-                                                        lstAsistencia.forEach { alumno ->
-                                                            var horaReg=""
-                                                            if(alumno.hora_regreso == null){
-                                                                horaReg = ""
-                                                            }else{
-                                                                horaReg = alumno.hora_regreso
+                                                                db.iAsistenciaDAO.guardaAsistencia(a)
                                                             }
+                                                        },
+                                                        onError = {})
+
+                                                if (it.turno == "2")
+                                                    asistenciaTarViewModel.getAsistencia(
+                                                        it.id_ruta, token,
+                                                        onSuccess = { lstAsistencia ->
+                                                            lstAsistencia.forEach { alumno ->
+                                                                var horaReg = ""
+                                                                if (alumno.hora_regreso == null) {
+                                                                    horaReg = ""
+                                                                } else {
+                                                                    horaReg = alumno.hora_regreso
+                                                                }
 
 
-                                                            var tarjeta=""
-                                                            if(alumno.tarjeta == null){
-                                                                tarjeta = ""
-                                                            }else{
-                                                                tarjeta = alumno.tarjeta
+                                                                var tarjeta = ""
+                                                                if (alumno.tarjeta == null) {
+                                                                    tarjeta = ""
+                                                                } else {
+                                                                    tarjeta = alumno.tarjeta
+                                                                }
+
+
+                                                                var orden_out = ""
+                                                                if (alumno.orden_out == null) {
+                                                                    orden_out = "0"
+                                                                } else {
+                                                                    orden_out = alumno.orden_out
+                                                                }
+
+                                                                var orden_in = ""
+                                                                if (alumno.orden_in == null) {
+                                                                    orden_in = "0"
+                                                                } else {
+                                                                    orden_in = alumno.orden_in
+                                                                }
+
+                                                                var especial = "0"
+                                                                if (orden_out.toInt() > 900 && alumno.salida.toInt() < 2) {
+                                                                    especial = "1"
+                                                                }
+
+                                                                val a = AsistenciaDAO(
+                                                                    0,
+                                                                    it.id_ruta,
+                                                                    tarjeta,
+                                                                    alumno.id_alumno,
+                                                                    alumno.nombre,
+                                                                    alumno.domicilio,
+                                                                    alumno.hora_manana,
+                                                                    horaReg,
+                                                                    alumno.ascenso,
+                                                                    alumno.descenso,
+                                                                    alumno.domicilio_s,
+                                                                    alumno.grupo,
+                                                                    alumno.grado,
+                                                                    alumno.nivel,
+                                                                    alumno.foto,
+                                                                    false,
+                                                                    false,
+                                                                    alumno.ascenso_t!!,
+                                                                    alumno.descenso_t,
+                                                                    alumno.salida,
+                                                                    orden_in,
+                                                                    orden_out,
+                                                                    false,
+                                                                    false,
+                                                                    0,
+                                                                    alumno.asistencia,
+                                                                    "",
+                                                                    especial
+                                                                )
+                                                                db.iAsistenciaDAO.guardaAsistencia(a)
                                                             }
-
-
-                                                            var orden_out=""
-                                                            if(alumno.orden_out == null){
-                                                                orden_out = "0"
-                                                            }else{
-                                                                orden_out = alumno.orden_out
-                                                            }
-
-                                                            var orden_in=""
-                                                            if(alumno.orden_in == null){
-                                                                orden_in = "0"
-                                                            }else{
-                                                                orden_in = alumno.orden_in
-                                                            }
-
-                                                            var especial="0"
-                                                            if(orden_out.toInt()>900 && alumno.salida.toInt()<2){
-                                                                especial="1"
-                                                            }
-
-                                                            val a = AsistenciaDAO(0,it.id_ruta,tarjeta,alumno.id_alumno,
-                                                                alumno.nombre,alumno.domicilio,alumno.hora_manana,horaReg,
-                                                                alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
-                                                                alumno.nivel,alumno.foto,false,false,alumno.ascenso_t!!,alumno.descenso_t,
-                                                                alumno.salida,
-                                                                orden_in,
-                                                                orden_out,
-                                                                false,false,0,
-                                                                alumno.asistencia,"",especial)
-                                                            db.iAsistenciaDAO.guardaAsistencia(a)
-                                                        }
-                                                    },
-                                                    onError = {})
-                                             db.iRutaDAO.guardaRutas(
+                                                        },
+                                                        onError = {})
+                                                db.iRutaDAO.guardaRutas(
 
                                                     RutaDAO(
                                                         0,
@@ -386,22 +645,26 @@ class MainActivity : ComponentActivity() {
                                                         0
                                                     )
                                                 )
+                                            }
                                         }
+
                                     }
 
-                                }
 
+                                    Intent(
+                                        this@MainActivity,
+                                        SeleccionRutaActivity::class.java
+                                    ).also {
+                                        startActivity(it)
+                                    }
 
-                                Intent(this@MainActivity, SeleccionRutaActivity::class.java).also {
-                                    startActivity(it)
-                                }
-
-                            },
-                            onError = {
-                                Log.d("Error", it.message.toString())
-                            })
-
-
+                                },
+                                onError = {
+                                    Log.d("Error", it.message.toString())
+                                })
+                        }else{
+                            Toast.makeText(this@MainActivity, "Ingrese usuario y contraseña", Toast.LENGTH_SHORT).show()
+                        }*/
                     },
                         colors = ButtonDefaults.buttonColors(
                             colorResource(id = R.color.azulColegio),  // Color de fondo del botón

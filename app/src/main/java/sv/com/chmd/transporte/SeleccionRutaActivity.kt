@@ -1,5 +1,6 @@
 package sv.com.chmd.transporte
 
+import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.SharedPreferences
@@ -8,8 +9,11 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ExitToApp
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Badge
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -42,13 +47,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
@@ -60,6 +68,7 @@ import sv.com.chmd.transporte.model.RutaCamionItem
 import sv.com.chmd.transporte.services.NetworkChangeReceiver
 import sv.com.chmd.transporte.ui.theme.CHMDTransporteTheme
 import sv.com.chmd.transporte.util.nunitoBold
+import sv.com.chmd.transporte.util.nunitoRegular
 import sv.com.chmd.transporte.viewmodel.LoginViewModel
 import sv.com.chmd.transporte.viewmodel.SeleccionRutaViewModel
 
@@ -72,6 +81,8 @@ class SeleccionRutaActivity : TransporteActivity() {
         super.onResume()
 
     }
+
+
     override fun onStart() {
         super.onStart()
 
@@ -87,121 +98,160 @@ class SeleccionRutaActivity : TransporteActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        val auxiliar = sharedPreferences.getString("auxiliar","usuario")
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                //El boton back no hace nada
+            }
+        })
+
         setContent {
             CHMDTransporteTheme {
                 //lstRutas.clear()
                 //getRutas()
-               SeleccionRutaScreen()
+               SeleccionRutaScreen(auxiliar!!)
             }
         }
     }
 
     @Composable
-    @Preview(showBackground = true)
-    fun SeleccionRutaScreen() {
+    fun SeleccionRutaScreen(auxiliar: String = "") {
+        val rutas by viewModel.lstRutas.collectAsState()
+        var isLoading by remember { mutableStateOf(true) }
+
+        // Simula un pequeño delay para esperar que rutas se carguen
+        LaunchedEffect(rutas) {
+            if (isLoading) {
+                delay(300)
+                isLoading = false
+            }
+        }
+
         Scaffold(
-            topBar = { ToolbarSeleccion(
-                onUploadClick = {
-                   Toast.makeText(this,"Hay datos no sincronizados, cuando tengas una conexion a internet se van a sincronizar",Toast.LENGTH_LONG).show()
-                }
-            ) }
+            topBar = {
+                ToolbarSeleccion(
+                    onUploadClick = {
+                        Toast.makeText(
+                            this@SeleccionRutaActivity,
+                            "Hay datos no sincronizados, cuando tengas una conexión a internet se van a sincronizar",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                )
+            }
         ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
             ) {
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(horizontal = 36.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Text(
-                        text = "Seleccionar Ruta",
-                        color = colorResource(R.color.textoMasOscuro),
-                        fontSize = 24.sp,
-                        fontFamily = nunitoBold,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
+                when {
+                    isLoading -> {
+                        // ⏳ Mostrar loading mientras se inicializa la lista
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = colorResource(R.color.azulColegio)
+                        )
+                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-                    val rutas by viewModel.lstRutas.collectAsState()
-                    LazyColumn(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f)
-                    ) {
-                        itemsIndexed(rutas) { index, item ->
-                            if (index > 0) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                            Log.d("Rutas _db_", item.nombre_ruta)
-                            RutaItem(rutaText = generarCodigoRuta(item.turno,item.tipo_ruta,item.camion)+"-"+item.nombre_ruta,
-                                tipoMovText = if(item.estatus == "0") "S" else "B",
-                                tipoRutaImage = if(item.turno == "1") R.drawable.am else R.drawable.pm,
-                                modifier = Modifier,
-                                onClick = {
-                                    val idRuta = rutas[index].id_ruta_h
-                                    val nombreRuta = rutas[index].nombre_ruta
-                                    sharedPreferences.edit().putString("idRuta",idRuta).apply()
-                                    //Ruta mañana, modo subida (recogiendo niños)
-                                    if(item.turno == "1" && item.estatus=="0") {
-                                        val intent = Intent(
-                                            this@SeleccionRutaActivity,
-                                            AsistenciaManActivity::class.java
-                                        )
-
-                                        intent.putExtra("idRuta", idRuta)
-                                        intent.putExtra("nombreRuta", nombreRuta)
-                                        startActivity(intent)
-                                        finish()
-                                    }
-
-                                    //Ruta mañana, modo bajada (llegada a la escuela)
-                                    if(item.turno == "1" && item.estatus=="1") {
-                                        val intent = Intent(
-                                            this@SeleccionRutaActivity,
-                                            AsistenciaManBajarActivity::class.java
-                                        )
-                                        intent.putExtra("idRuta", idRuta)
-                                        intent.putExtra("nombreRuta", nombreRuta)
-                                        startActivity(intent)
-                                    }
-                                    //Ruta tarde, modo subida (recogiendo niños en el colegio)
-                                    if(item.turno == "2" && item.estatus=="0") {
-                                        val intent = Intent(
-                                            this@SeleccionRutaActivity,
-                                            AsistenciaTarActivity::class.java
-                                        )
-                                        intent.putExtra("idRuta", idRuta)
-                                        intent.putExtra("nombreRuta", nombreRuta)
-                                        startActivity(intent)
-                                        finish()
-                                    }
-                                    //Ruta tarde, modo bajada (dejando niños en sus casa)
-                                    if(item.turno == "2" && item.estatus=="1") {
-                                        val intent = Intent(
-                                            this@SeleccionRutaActivity,
-                                            AsistenciaTarBajarActivity::class.java
-                                        )
-                                        intent.putExtra("idRuta", idRuta)
-                                        intent.putExtra("nombreRuta", nombreRuta)
-                                        startActivity(intent)
-                                        finish()
-                                    }
-
-
-                                })
+                    rutas.isEmpty() -> {
+                        // 🖼 Mostrar imagen y texto si no hay rutas
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.closed),
+                                contentDescription = "Sin rutas",
+                                modifier = Modifier.size(200.dp)
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "No hay rutas disponibles en este momento",
+                                fontSize = 18.sp,
+                                fontFamily = nunitoRegular,
+                                color = colorResource(R.color.textoMasOscuro),
+                                textAlign = TextAlign.Center
+                            )
                         }
+                    }
 
+                    else -> {
+                        // ✅ Mostrar rutas disponibles
+                        Column(
+                            modifier = Modifier
+                                .align(Alignment.TopCenter)
+                                .padding(horizontal = 36.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Seleccionar Ruta",
+                                color = colorResource(R.color.textoMasOscuro),
+                                fontSize = 24.sp,
+                                fontFamily = nunitoBold,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 16.dp)
+                            )
 
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            Text(
+                                text = "Bienvenido(a), $auxiliar",
+                                color = colorResource(R.color.azulColegio),
+                                fontSize = 14.sp,
+                                fontFamily = nunitoRegular,
+                                textAlign = TextAlign.Center,
+                                modifier = Modifier.padding(top = 16.dp)
+                            )
+
+                            LazyColumn(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .weight(1f)
+                            ) {
+                                itemsIndexed(rutas) { index, item ->
+                                    if (index > 0) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
+
+                                    RutaItem(
+                                        rutaText = generarCodigoRuta(item.turno, item.tipo_ruta, item.camion) + "-" + item.nombre_ruta,
+                                        tipoMovText = if (item.estatus == "0") "S" else "B",
+                                        tipoRutaImage = if (item.turno == "1") R.drawable.am else R.drawable.pm,
+                                        modifier = Modifier,
+                                        onClick = {
+                                            val context = this@SeleccionRutaActivity
+                                            val idRuta = item.id_ruta_h
+                                            val nombreRuta = item.nombre_ruta
+                                            sharedPreferences.edit().putString("idRuta", idRuta).apply()
+
+                                            val intent = when {
+                                                item.turno == "1" && item.estatus == "0" -> Intent(context, AsistenciaManActivity::class.java)
+                                                item.turno == "1" && item.estatus == "1" -> Intent(context, AsistenciaManBajarActivity::class.java)
+                                                item.turno == "2" && item.estatus == "0" -> Intent(context, AsistenciaTarActivity::class.java)
+                                                item.turno == "2" && item.estatus == "1" -> Intent(context, AsistenciaTarBajarActivity::class.java)
+                                                else -> null
+                                            }
+
+                                            intent?.apply {
+                                                putExtra("idRuta", idRuta)
+                                                putExtra("nombreRuta", nombreRuta)
+                                                context.startActivity(this)
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
     }
+
+
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable

@@ -10,6 +10,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -61,7 +63,9 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
@@ -70,6 +74,7 @@ import sv.com.chmd.transporte.composables.AlumnoAsistenciaManComposable
 import sv.com.chmd.transporte.composables.AsistenciasComposable
 import sv.com.chmd.transporte.composables.ConfirmarInasistenciaDialog
 import sv.com.chmd.transporte.composables.SearchBarAlumnos
+import sv.com.chmd.transporte.composables.SlowNetworkScreen
 import sv.com.chmd.transporte.db.AsistenciaDAO
 import sv.com.chmd.transporte.db.RutaDAO
 import sv.com.chmd.transporte.db.TransporteDB
@@ -115,6 +120,16 @@ class AsistenciaManActivity : TransporteActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         token = sharedPreferences.getString("token", "")
+
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                Intent(this@AsistenciaManActivity, SeleccionRutaActivity::class.java).also {
+                    startActivity(it)
+                }
+                finish()
+            }
+        })
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             startForegroundService(
                 Intent(
@@ -129,8 +144,14 @@ class AsistenciaManActivity : TransporteActivity() {
             CHMDTransporteTheme {
                 idRuta = intent.getStringExtra("idRuta")
                 nombreRuta = intent.getStringExtra("nombreRuta")
-                getAsistencia()
-                AsistenciaScreen(idRuta)
+                val isSlowNetwork by transporteViewModel.isSlowNetwork.collectAsState()
+                if (isSlowNetwork) {
+                    SlowNetworkScreen(this)
+                } else {
+                    getAsistencia()
+                    AsistenciaScreen(idRuta)
+                }
+
             }
         }
     }
@@ -202,6 +223,7 @@ fun getAsistencia(){
 }
 */
 
+    /*
     fun getAsistencia(){
         if(hayConexion()){
             asistenciaViewModel.getAsistenciaMan(idRuta.toString(), token!!,
@@ -270,6 +292,78 @@ fun getAsistencia(){
             }
         }
     }
+*/
+
+    fun getAsistencia() {
+        if (hayConexion()) {
+            CoroutineScope(Dispatchers.IO).launch {
+                asistenciaViewModel.getAsistenciaManFlow(idRuta.toString(), token!!)
+                    .catch { e ->
+                        Log.e("Asistencia", "Error obteniendo asistencia", e)
+                    }
+                    .collect { it ->
+                        withContext(Dispatchers.Main) {
+                            lstAlumnos.clear()
+                            lstAlumnos.addAll(it)
+
+                            val noVan = it.count { it.ascenso == "0" && it.descenso == "0" && it.asistencia == "0" }
+                            ascensos = it.count { it.ascenso == "1" && it.descenso == "0" }
+                            inasistencias = it.count { it.ascenso == "2" && it.descenso == "2" } +
+                                    it.count { it.asistencia == "0" }
+                            val noAsisten = it.count { it.asistencia == "0" }
+                            totalidad = 0
+                        }
+                    }
+            }
+        } else {
+            // Modo Offline
+            lstAlumnos.clear()
+            CoroutineScope(Dispatchers.IO).launch {
+                val db = TransporteDB.getInstance(this@AsistenciaManActivity)
+                val data = db.iAsistenciaDAO.getAsistencia(idRuta.toString())
+
+                val asistenciaList: List<Asistencia> = data.map { asistenciaDAO ->
+                    Asistencia(
+                        tarjeta = asistenciaDAO.tarjeta,
+                        ascenso = asistenciaDAO.ascenso,
+                        ascenso_t = asistenciaDAO.ascenso_t ?: "0",
+                        asistencia = asistenciaDAO.asistencia,
+                        descenso = asistenciaDAO.descenso,
+                        descenso_t = asistenciaDAO.descenso_t,
+                        domicilio = asistenciaDAO.domicilio,
+                        domicilio_s = asistenciaDAO.domicilio_s,
+                        estatus = "",
+                        fecha = "",
+                        foto = asistenciaDAO.foto,
+                        grado = asistenciaDAO.grado,
+                        grupo = asistenciaDAO.grupo,
+                        hora_manana = asistenciaDAO.horaManana,
+                        hora_regreso = asistenciaDAO.horaRegreso,
+                        id_alumno = asistenciaDAO.idAlumno,
+                        id_ruta_h = asistenciaDAO.idRuta,
+                        id_ruta_h_s = "",
+                        nivel = asistenciaDAO.nivel,
+                        nombre = asistenciaDAO.nombreAlumno,
+                        orden_in = asistenciaDAO.ordenIn,
+                        orden_out = asistenciaDAO.ordenOut,
+                        salida = asistenciaDAO.salida,
+                        tipo_asistencia = "",
+                        orden_in_1 = asistenciaDAO.ordenIn1,
+                        orden_out_1 = asistenciaDAO.ordenOut1
+                    )
+                }
+
+                withContext(Dispatchers.Main) {
+                    lstAlumnos.addAll(asistenciaList)
+                    ascensos = lstAlumnos.count { it.ascenso == "1" && it.descenso == "0" }
+                    inasistencias = lstAlumnos.count { it.ascenso == "2" && it.descenso == "2" } +
+                            lstAlumnos.count { it.asistencia == "0" }
+                    val noAsisten = lstAlumnos.count { it.asistencia == "0" }
+                    totalidad = 0
+                }
+            }
+        }
+    }
 
 
     @Composable
@@ -294,6 +388,7 @@ fun getAsistencia(){
                 Intent(this@AsistenciaManActivity, SeleccionRutaActivity::class.java).also {
                     startActivity(it)
                 }
+                finish()
             }, onUpdateClick = { getAsistencia() }, onMessageClick = {
                 showMessageDialog = true
             }, onUploadClick = {
@@ -391,7 +486,10 @@ fun getAsistencia(){
                                                getCurrentTime(), token!!,
                                                onSuccess = {
                                                    Log.d("asistencia _al_", it)
-                                                   getAsistencia()
+                                                   CoroutineScope(Dispatchers.Main).launch {
+                                                       delay(1000)
+                                                       getAsistencia()
+                                                   }
                                                },
                                                onError = {
                                                    Log.e("asistencia _al_", it.message.toString())
@@ -402,22 +500,27 @@ fun getAsistencia(){
                                            CoroutineScope(Dispatchers.IO).launch {
                                                Log.d("asistencia _al_",idRuta.toString())
                                                Log.d("asistencia _al_",asistencia.id_alumno)
-                                               db.iAsistenciaDAO.asisteTurnoMan(idRuta!!,asistencia.id_alumno,-1,getCurrentTime())
+                                               db.iAsistenciaDAO.asisteTurnoMan(asistencia.id_ruta_h,asistencia.id_alumno,-1,getCurrentTime())
                                            }
-                                           Thread.sleep(1000)
-                                           getAsistencia()
+                                           CoroutineScope(Dispatchers.Main).launch {
+                                               delay(1000)
+                                               getAsistencia()
+                                           }
 
                                        }
                                     if((asistencia.ascenso == "1" && asistencia.descenso == "0") || asistencia.ascenso == "2")
                                         if(hayConexion()) {
                                             val db = TransporteDB.getInstance(this@AsistenciaManActivity)
                                             CoroutineScope(Dispatchers.IO).launch {
-                                                db.iAsistenciaDAO.reiniciaAsistenciaMan(idRuta!!,asistencia.id_alumno,1,getCurrentTime())
+                                                db.iAsistenciaDAO.reiniciaAsistenciaMan(asistencia.id_ruta_h,asistencia.id_alumno,1,getCurrentTime())
                                             }
-                                            asistenciaViewModel.reiniciaAsistencia(ruta,asistencia.id_alumno,
+                                            asistenciaViewModel.reiniciaAsistencia(asistencia.id_ruta_h,asistencia.id_alumno,
                                                 onSuccess = {
                                                     Log.d("asistencia _al_",it)
-                                                    getAsistencia()
+                                                    CoroutineScope(Dispatchers.Main).launch {
+                                                        delay(1000)
+                                                        getAsistencia()
+                                                    }
                                                 },
                                                 onError = {
                                                     Log.e("asistencia _al_",it.message.toString())
@@ -428,8 +531,10 @@ fun getAsistencia(){
                                             CoroutineScope(Dispatchers.IO).launch {
                                                 db.iAsistenciaDAO.reiniciaAsistenciaMan(idRuta!!,asistencia.id_alumno,-1,getCurrentTime())
                                             }
-                                            Thread.sleep(1000)
-                                            getAsistencia()
+                                            CoroutineScope(Dispatchers.Main).launch {
+                                                delay(1000)
+                                                getAsistencia()
+                                            }
                                         }
 
 
@@ -573,8 +678,10 @@ fun getAsistencia(){
                     CoroutineScope(Dispatchers.IO).launch {
                         db.iAsistenciaDAO.noAsisteTurnoMan(idRuta!!,idAlumnoInasist,-1,getCurrentTime())
                     }
-                    Thread.sleep(1000)
-                    getAsistencia()
+                    CoroutineScope(Dispatchers.Main).launch {
+                        delay(1000)
+                        getAsistencia()
+                    }
                 }
             }
         )
