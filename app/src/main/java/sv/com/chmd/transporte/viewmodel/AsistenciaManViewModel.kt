@@ -7,21 +7,28 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
+import retrofit2.HttpException
 import retrofit2.Response
 import retrofit2.awaitResponse
 import sv.com.chmd.transporte.db.TransporteDB
 import sv.com.chmd.transporte.model.Asistencia
 import sv.com.chmd.transporte.networking.ITransporte
+import sv.com.chmd.transporte.repository.AsistenciaManRepository
+import sv.com.chmd.transporte.util.ResultState
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class AsistenciaManViewModel(
     private val iTransporte: ITransporte,
-    private val sharedPreferences: SharedPreferences
+    private val repository: AsistenciaManRepository
 ) : ViewModel() {
 
     fun getAsistenciaMan(idRuta:String, token:String, onSuccess: (List<Asistencia>) -> Unit,onError: (Throwable) -> Unit) {
@@ -37,18 +44,15 @@ class AsistenciaManViewModel(
         }
     }
 
-    fun getAsistenciaManBajar(idRuta:String, token:String, onSuccess: (List<Asistencia>) -> Unit,onError: (Throwable) -> Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val response = iTransporte.getAsistenciaManBajar(idRuta, token).awaitResponse()
-
-            if (response.isSuccessful) {
-                val data = response.body()!!
-                onSuccess(data)
-            } else {
-                onError(Throwable(response.message()))
-            }
-        }
+    fun getAsistenciaManFlow(idRuta: String, token: String): Flow<List<Asistencia>> {
+        return repository.getAsistenciaManFlow(idRuta, token)
     }
+
+    fun getAsistenciaManBajarFlow(idRuta: String, token: String): Flow<List<Asistencia>> {
+        return repository.getAsistenciaManBajarFlow(idRuta, token)
+    }
+
+
 
     fun enviarLocalizacionMovimiento(idRuta:String,idAux:String,latitud:String,longitud:String,
                                      velocidad:String,accion:String, idAlumno: String,
@@ -127,7 +131,7 @@ class AsistenciaManViewModel(
     fun reiniciaAsistencia(idRuta:String, idAlumno:String,
                            onSuccess: (String) -> Unit, onError: (Throwable) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
-            val response = iTransporte.reiniciaAsistenciaAlumnoMan(idRuta,idAlumno).awaitResponse()
+            val response = iTransporte.reiniciaAsistenciaAlumnoMan(idAlumno,idRuta).awaitResponse()
             if(response.isSuccessful){
                 val data = response.body()!!
                 onSuccess(data)

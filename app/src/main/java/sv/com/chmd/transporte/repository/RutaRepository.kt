@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.widget.Toast
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.withContext
 import sv.com.chmd.transporte.db.TransporteDB
 import sv.com.chmd.transporte.model.RutaCamionItem
@@ -13,18 +16,14 @@ class RutaRepository(
     private val sharedPreferences: SharedPreferences,
     private val context: Context
 ) {
-    suspend fun obtenerRutasActivas(): List<RutaCamionItem> {
+    fun obtenerRutasActivas(): Flow<List<RutaCamionItem>> = flow {
         val rutas = db.iRutaDAO.getRutasActivas()
             .filter { it.estatus.toInt() < 2 }
             .sortedBy { it.turno }
 
-        if (rutas.isEmpty()) {
-            withContext(Dispatchers.Main) {
-                Toast.makeText(context, "No hay rutas asignadas", Toast.LENGTH_LONG).show()
-            }
-        }
 
-        return rutas.map {
+
+        val rutaItems = rutas.map {
             RutaCamionItem(
                 it.camion,
                 it.estatus,
@@ -34,7 +33,9 @@ class RutaRepository(
                 it.turno
             )
         }
-    }
+
+        emit(rutaItems)
+    }.flowOn(Dispatchers.IO)
 
     fun guardarRutaSeleccionada(idRuta: String) {
         sharedPreferences.edit().putString("idRuta", idRuta).apply()

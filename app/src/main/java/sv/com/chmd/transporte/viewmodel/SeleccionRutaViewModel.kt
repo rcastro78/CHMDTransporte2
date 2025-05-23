@@ -26,9 +26,10 @@ class SeleccionRutaViewModel(
     }
 
     private fun getRutas() {
-        viewModelScope.launch(Dispatchers.IO) {
-            val rutas = repository.obtenerRutasActivas()
-            _lstRutas.value = rutas
+        viewModelScope.launch {
+            repository.obtenerRutasActivas().collect { rutas ->
+                _lstRutas.value = rutas
+            }
         }
     }
 
