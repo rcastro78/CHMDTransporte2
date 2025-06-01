@@ -2,6 +2,7 @@ package sv.com.chmd.transporte.composables
 
 import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.util.Log
 import androidx.compose.foundation.Image

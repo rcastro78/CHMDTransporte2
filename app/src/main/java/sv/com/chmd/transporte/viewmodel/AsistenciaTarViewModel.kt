@@ -11,16 +11,18 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.launch
 import okhttp3.ResponseBody.Companion.toResponseBody
+import retrofit2.HttpException
 import retrofit2.Response
 import retrofit2.awaitResponse
 import sv.com.chmd.transporte.model.AlumnoRutaDiferenteItem
 import sv.com.chmd.transporte.model.Asistencia
 import sv.com.chmd.transporte.networking.ITransporte
+import sv.com.chmd.transporte.repository.AsistenciaTarRepository
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 class AsistenciaTarViewModel(private val iTransporte: ITransporte,
-                             private val sharedPreferences: SharedPreferences
+                             private val repository: AsistenciaTarRepository
 ) : ViewModel()  {
     fun getAsistencia(idRuta:String, token:String,
                       onSuccess: (List<Asistencia>) -> Unit,
@@ -36,16 +38,13 @@ class AsistenciaTarViewModel(private val iTransporte: ITransporte,
         }
     }
 
-    fun getAsistenciaBajar(idRuta:String, token:String, onSuccess: (List<Asistencia>) -> Unit, onError: (Throwable) -> Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val response = iTransporte.getAsistenciaTarBajar(idRuta, token).awaitResponse()
-            if (response.isSuccessful) {
-                val data = response.body()!!
-                onSuccess(data)
-            } else {
-                onError(Throwable(response.message()))
-            }
-        }
+
+    fun getAsistenciaFlow(idRuta:String, token:String): Flow<List<Asistencia>>{
+        return repository.getAsistenciaFlow(idRuta, token)
+    }
+
+    fun getAsistenciaBajarFlow(idRuta:String, token:String): Flow<List<Asistencia>>{
+        return repository.getAsistenciaBajarFlow(idRuta, token)
     }
 
 
@@ -95,12 +94,15 @@ class AsistenciaTarViewModel(private val iTransporte: ITransporte,
     fun setAlumnoBajada(idRuta:String,idAlumno:String, hora: String,
                         onSuccess: (String) -> Unit, onError: (Throwable) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
-            val response = iTransporte.descensoAlumnoTar(idRuta, idAlumno, hora).awaitResponse()
+            Log.d("BAJADA _enviar_", "$idRuta $idAlumno")
+            val response = iTransporte.descensoAlumnoTar(idAlumno, idRuta, hora).awaitResponse()
             if (response.isSuccessful) {
                 val data = response.body()!!
+                Log.d("BAJADA _enviar_", data.toString())
                 onSuccess(data)
             } else {
                 onError(Throwable(response.message()))
+                Log.d("BAJADA _enviar_", response.message())
             }
 
         }

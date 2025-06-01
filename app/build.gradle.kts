@@ -14,8 +14,8 @@ android {
         applicationId = "sv.com.chmd.transporte"
         minSdk = 28
         targetSdk = 34
-        versionCode = 75
-        versionName = "2.0.4.18"
+        versionCode = 84
+        versionName = "2.0.6.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -91,9 +91,10 @@ dependencies {
     implementation ("com.squareup.retrofit2:converter-gson:2.8.1")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
     implementation("androidx.sqlite:sqlite-framework:2.4.0")
-
+    implementation ("androidx.compose.material:material-icons-extended:1.5.0")
     implementation("androidx.room:room-runtime:2.6.1")
     implementation("androidx.room:room-ktx:2.6.1")
+
     ksp("androidx.room:room-compiler:2.6.1")
 
     implementation(libs.coil.compose)
