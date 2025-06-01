@@ -198,7 +198,7 @@ class SeleccionRutaActivity : TransporteActivity() {
                             Spacer(modifier = Modifier.height(8.dp))
 
                             Text(
-                                text = "Bienvenido(a), $auxiliar",
+                                text = "Bienvenido(a), colaborador",
                                 color = colorResource(R.color.azulColegio),
                                 fontSize = 14.sp,
                                 fontFamily = nunitoRegular,

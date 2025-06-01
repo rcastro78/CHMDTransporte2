@@ -315,7 +315,7 @@ class MainActivity : ComponentActivity() {
                         if(username.isNotEmpty()) {
                                 loginViewModel.getRutasCamion(
                                     username.lowercase().replace("camion", ""),
-                                    password.lowercase(),
+                                    /*password.lowercase(),*/
                                     onSuccess = { lstRutas ->
                                         sharedPreferences.edit() {
                                             putString(
@@ -343,6 +343,13 @@ class MainActivity : ComponentActivity() {
                                                                         orden_in = alumno.orden_in
                                                                     }
 
+                                                                    var orden_out = ""
+                                                                    if (alumno.orden_in == null) {
+                                                                        orden_out = "0"
+                                                                    } else {
+                                                                        orden_out = alumno.orden_out.toString()
+                                                                    }
+
                                                                     var especial = "0"
 
                                                                     val a = AsistenciaDAO(
@@ -367,7 +374,7 @@ class MainActivity : ComponentActivity() {
                                                                         alumno.descenso_t,
                                                                         alumno.salida,
                                                                         orden_in,
-                                                                        "",
+                                                                        orden_out,
                                                                         false,
                                                                         false,
                                                                         0,

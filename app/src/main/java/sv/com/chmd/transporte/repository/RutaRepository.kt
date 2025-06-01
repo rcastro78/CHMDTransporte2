@@ -20,9 +20,6 @@ class RutaRepository(
         val rutas = db.iRutaDAO.getRutasActivas()
             .filter { it.estatus.toInt() < 2 }
             .sortedBy { it.turno }
-
-
-
         val rutaItems = rutas.map {
             RutaCamionItem(
                 it.camion,

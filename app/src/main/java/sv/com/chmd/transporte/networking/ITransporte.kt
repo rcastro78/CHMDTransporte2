@@ -135,6 +135,12 @@ interface ITransporte {
     ): Call<String>
 
 
+    @FormUrlEncoded
+    @POST("registroRuta.php")
+    fun registraRuta(@Field("idAuxiliar") idAuxiliar: String?, @Field("camion") camion: String?,
+                     @Field("ruta") ruta: String?, @Field("accion") accion: String?,
+                     @Field("latitud") latitud: String?, @Field("longitud") longitud: String?):Call<GenericResponse>
+
     @GET("registrarCierreRuta.php")
     fun registrarCierreRuta(
         @Query("id_ruta") idRuta: String?,

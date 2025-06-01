@@ -9,6 +9,7 @@ import kotlinx.coroutines.launch
 import retrofit2.awaitResponse
 import sv.com.chmd.transporte.model.DispositivoActivo
 import sv.com.chmd.transporte.networking.ITransporte
+import sv.com.chmd.transporte.util.EstadoDispositivo
 
 class ValidarDispositivoViewModel(private val iTransporte: ITransporte,
                                   private val sharedPreferences: SharedPreferences
@@ -79,14 +80,16 @@ class ValidarDispositivoViewModel(private val iTransporte: ITransporte,
                 val response = iTransporte.validaDispositivo2(androidId).awaitResponse()
                 if (response.isSuccessful) {
                     val result = response.body()?.access
-                    //devolver un bloque
                     result?.let {
                         Log.d("VERIFICAR", it)
-                        when (it) {
-                            VALIDO -> onValidDeviceSuccessful(it)
-                            REGISTRADO -> onRegisterSuccessful(it)
-                            NO_REGISTRADO -> onNotRegistered(it)
-                            NO_VALIDO -> onInvalidDevice(it)
+                        when (EstadoDispositivo.getCodigoEstado(it)) {
+                            is EstadoDispositivo.Valido -> onValidDeviceSuccessful(it)
+                            is EstadoDispositivo.Registrado -> onRegisterSuccessful(it)
+                            is EstadoDispositivo.NoRegistrado -> onNotRegistered(it)
+                            is EstadoDispositivo.NoValido -> onInvalidDevice(it)
+                            is EstadoDispositivo.Desconocido -> {
+                                Log.w("VERIFICAR", "Estado desconocido: $it")
+                            }
                         }
                     }
                 }
@@ -95,5 +98,4 @@ class ValidarDispositivoViewModel(private val iTransporte: ITransporte,
             }
         }
     }
-
 }

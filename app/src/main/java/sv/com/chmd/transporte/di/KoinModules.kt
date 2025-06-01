@@ -13,12 +13,16 @@ import sv.com.chmd.transporte.networking.TransporteAPI
 import sv.com.chmd.transporte.repository.AsistenciaManRepository
 import sv.com.chmd.transporte.repository.AsistenciaTarRepository
 import sv.com.chmd.transporte.repository.LoginRepository
+import sv.com.chmd.transporte.repository.RegistroRutaRepository
 import sv.com.chmd.transporte.repository.RutaRepository
 import sv.com.chmd.transporte.services.NetworkChangeReceiver
 import sv.com.chmd.transporte.viewmodel.AsistenciaManViewModel
 import sv.com.chmd.transporte.viewmodel.AsistenciaTarViewModel
 import sv.com.chmd.transporte.viewmodel.CierreRutaViewModel
+import sv.com.chmd.transporte.viewmodel.GPSViewModel
+import sv.com.chmd.transporte.viewmodel.LocalizationViewModel
 import sv.com.chmd.transporte.viewmodel.LoginViewModel
+import sv.com.chmd.transporte.viewmodel.RegistroRutaViewModel
 import sv.com.chmd.transporte.viewmodel.SeleccionRutaViewModel
 import sv.com.chmd.transporte.viewmodel.TransporteViewModel
 import sv.com.chmd.transporte.viewmodel.ValidarDispositivoViewModel
@@ -42,10 +46,14 @@ object KoinModules {
         viewModel { CierreRutaViewModel(get(),get()) }
         viewModel { SeleccionRutaViewModel(get()) }
         viewModel { TransporteViewModel()}
+        viewModel { LocalizationViewModel() }
+        viewModel{GPSViewModel(get())}
+        viewModel {RegistroRutaViewModel(get())}
 
         single { AsistenciaManRepository(get()) }
         single { AsistenciaTarRepository(get()) }
         single {LoginRepository(get())}
+        single { RegistroRutaRepository(get()) }
     }
 
 }

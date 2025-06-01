@@ -94,12 +94,15 @@ class AsistenciaTarViewModel(private val iTransporte: ITransporte,
     fun setAlumnoBajada(idRuta:String,idAlumno:String, hora: String,
                         onSuccess: (String) -> Unit, onError: (Throwable) -> Unit) {
         CoroutineScope(Dispatchers.IO).launch {
-            val response = iTransporte.descensoAlumnoTar(idRuta, idAlumno, hora).awaitResponse()
+            Log.d("BAJADA _enviar_", "$idRuta $idAlumno")
+            val response = iTransporte.descensoAlumnoTar(idAlumno, idRuta, hora).awaitResponse()
             if (response.isSuccessful) {
                 val data = response.body()!!
+                Log.d("BAJADA _enviar_", data.toString())
                 onSuccess(data)
             } else {
                 onError(Throwable(response.message()))
+                Log.d("BAJADA _enviar_", response.message())
             }
 
         }
