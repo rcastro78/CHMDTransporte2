@@ -108,8 +108,14 @@ interface ITransporte {
         @Query("estatus") estatus: String?
     ): Call<String>
 
-    @GET("puedeCerrarRuta.php")
+    @GET("puedeCerrarRutaTarde.php")
     fun puedeCerrarRutaTarde(
+        @Query("id_ruta") id_ruta: String?,
+        @Query("estatus") estatus: String?
+    ): Call<PuedeCerrarRutaResponse>
+
+    @GET("puedeCerrarRutaMan.php")
+    fun puedeCerrarRutaMan(
         @Query("id_ruta") id_ruta: String?,
         @Query("estatus") estatus: String?
     ): Call<PuedeCerrarRutaResponse>

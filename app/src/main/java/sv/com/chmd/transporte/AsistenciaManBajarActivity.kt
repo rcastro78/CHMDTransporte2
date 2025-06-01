@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -85,6 +86,7 @@ import sv.com.chmd.transporte.ui.theme.CHMDTransporteTheme
 import sv.com.chmd.transporte.util.nunitoBold
 import sv.com.chmd.transporte.util.nunitoRegular
 import sv.com.chmd.transporte.viewmodel.AsistenciaManViewModel
+import sv.com.chmd.transporte.viewmodel.CierreRutaViewModel
 import sv.com.chmd.transporte.viewmodel.GPSViewModel
 import sv.com.chmd.transporte.viewmodel.LocalizationViewModel
 import sv.com.chmd.transporte.viewmodel.RegistroRutaViewModel
@@ -106,6 +108,7 @@ class AsistenciaManBajarActivity : TransporteActivity() {
     var idRuta: String? = ""
     var nombreRuta: String? = ""
     var token: String? = ""
+    var puedeCerrar=false
     override fun onStart() {
         super.onStart()
 
@@ -168,73 +171,6 @@ class AsistenciaManBajarActivity : TransporteActivity() {
     }
 
 
-    /*
-    fun getAsistencia(){
-        if(hayConexion()) {
-            asistenciaViewModel.getAsistenciaManBajar(idRuta.toString(), token!!,
-                onSuccess = { it ->
-                    lstAlumnos.clear()
-                    lstAlumnos.addAll(it)
-                    try {
-                        lstAlumnos.removeAll { it.ascenso == "2" && it.descenso == "2" }
-                    }catch (_:Exception){}
-                    descensos = it.count { it.ascenso == "1" && it.descenso == "1" }
-                    inasistencias = 0
-                    totalidad = it.count { it.asistencia == "1" }
-                }, onError = {}
-            )
-        }else{
-
-            lstAlumnos.clear()
-            CoroutineScope(Dispatchers.IO).launch {
-                val db = TransporteDB.getInstance(this@AsistenciaManBajarActivity)
-                val data = db.iAsistenciaDAO.getAsistencia(idRuta.toString())
-                withContext(Dispatchers.Main) {
-
-                    val asistenciaList: Collection<Asistencia> = data.map { asistenciaDAO ->
-                        Asistencia(
-                            tarjeta = asistenciaDAO.tarjeta,
-                            ascenso = asistenciaDAO.ascenso,
-                            ascenso_t = asistenciaDAO.ascenso_t ?: "0",
-                            asistencia = asistenciaDAO.asistencia,
-                            descenso = asistenciaDAO.descenso,
-                            descenso_t = asistenciaDAO.descenso_t,
-                            domicilio = asistenciaDAO.domicilio,
-                            domicilio_s = asistenciaDAO.domicilio_s,
-                            estatus = "",  // Valor predeterminado
-                            fecha = "",  // Valor predeterminado
-                            foto = asistenciaDAO.foto,
-                            grado = asistenciaDAO.grado,
-                            grupo = asistenciaDAO.grupo,
-                            hora_manana = asistenciaDAO.horaManana,
-                            hora_regreso = asistenciaDAO.horaRegreso,
-                            id_alumno = asistenciaDAO.idAlumno,
-                            id_ruta_h = asistenciaDAO.idRuta,
-                            id_ruta_h_s = "",  // Valor predeterminado
-                            nivel = asistenciaDAO.nivel,
-                            nombre = asistenciaDAO.nombreAlumno,
-                            orden_in = asistenciaDAO.ordenIn,
-                            orden_out = asistenciaDAO.ordenOut,
-                            salida = asistenciaDAO.salida,
-                            tipo_asistencia = "",  // Valor predeterminado
-                            orden_in_1 = asistenciaDAO.ordenIn1,
-                            orden_out_1 = asistenciaDAO.ordenOut1,
-                        )
-                    }
-                    lstAlumnos.addAll(asistenciaList)
-                    lstAlumnos.removeAll { it.ascenso == "2" && it.descenso == "2" }
-                    descensos = lstAlumnos.count { it.ascenso == "1" && it.descenso == "1" }
-                    inasistencias = 0
-                    totalidad = lstAlumnos.count { it.asistencia == "1" }
-                }
-            }
-
-
-
-
-        }
-    }
-*/
 
     fun getAsistencia() {
         if (hayConexion()) {
@@ -310,6 +246,7 @@ class AsistenciaManBajarActivity : TransporteActivity() {
     @Composable
     @Preview(showBackground = true)
     fun AsistenciaScreen(idRuta: String? = "0",gpsViewModel: GPSViewModel = getViewModel()) {
+
         val isGpsEnabled by gpsViewModel.isGpsEnabled
         val estadoRegistro by registroRutaViewModel.registroEstado.collectAsState()
         if(!isGpsEnabled) {
@@ -540,6 +477,7 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                         Button(
                             onClick = {
                                 val db = TransporteDB.getInstance(this@AsistenciaManBajarActivity)
+
                                 if (descensos == lstAlumnos.count { it.asistencia != "0" }) {
                                     Toast.makeText(
                                         this@AsistenciaManBajarActivity,
