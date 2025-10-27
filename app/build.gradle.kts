@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.pm20.util.archivesName
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.jetbrains.kotlin.android)
@@ -14,9 +16,9 @@ android {
         applicationId = "sv.com.chmd.transporte"
         minSdk = 28
         targetSdk = 34
-        versionCode = 84
-        versionName = "2.0.6.1"
-
+        versionCode = 85
+        versionName = "2.1.0"
+        archivesName = "chmd-transporte-$versionName"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
             useSupportLibrary = true

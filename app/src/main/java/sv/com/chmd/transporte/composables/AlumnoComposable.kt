@@ -31,6 +31,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -214,30 +215,12 @@ fun AlumnoAsistenciaManComposable(
             .fillMaxWidth()
             .padding(6.dp)
             .height(232.dp)
-            .clip(RoundedCornerShape(12.dp))
+            .clip(RoundedCornerShape(12.dp)),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 8.dp
+        ),
+        shape = RoundedCornerShape(12.dp) // 👈 mejor poner el shape aquí en vez de usar clip
     ) {
-
-        /*
-        * if(items.asistencia=="0" && items.ascenso=="0" && items.descenso=="0"){
-            holder.imgFotoEstudiante.isEnabled=false
-            holder.llContenedor.setBackgroundColor(Color.parseColor("#ff4122"))
-            holder.btnInasistencia.visibility=View.GONE
-            //holder.lblInasistencia.text="Inasistencia"
-            holder.btnInasistencia.isEnabled = false
-
-        }
-
-        //Entró caminando (color aqua)
-        if(items.asistencia=="2"){
-            holder.imgFotoEstudiante.isEnabled=false
-            holder.llContenedor.setBackgroundColor(Color.parseColor("#7adfb5"))
-            holder.lblInasistencia.text="Entró caminando"
-            holder.btnInasistencia.setBackgroundColor(Color.parseColor("#7adfb5"))
-            holder.btnInasistencia.isEnabled = false
-
-        }
-        * */
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -555,7 +538,7 @@ fun AlumnoAsistenciaTarComposable(
                         contentScale = ContentScale.Crop
                     )
                     if(salida=="3")
-                    Image(painterResource(id =R.drawable.footstep_verde), contentDescription = "huellas"
+                        Image(painterResource(id =R.drawable.footstep_verde), contentDescription = "huellas"
                     )
 
                     if(orden_out_1!!.toInt() > 900)

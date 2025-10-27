@@ -13,6 +13,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -32,6 +33,7 @@ import androidx.compose.material.rememberScaffoldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -83,6 +85,7 @@ import sv.com.chmd.transporte.model.Asistencia
 import sv.com.chmd.transporte.services.LocalizacionService
 import sv.com.chmd.transporte.services.NetworkChangeReceiver
 import sv.com.chmd.transporte.ui.theme.CHMDTransporteTheme
+import sv.com.chmd.transporte.util.Constantes
 import sv.com.chmd.transporte.util.nunitoBold
 import sv.com.chmd.transporte.util.nunitoRegular
 import sv.com.chmd.transporte.viewmodel.AsistenciaManViewModel
@@ -246,7 +249,7 @@ class AsistenciaManBajarActivity : TransporteActivity() {
     @Composable
     @Preview(showBackground = true)
     fun AsistenciaScreen(idRuta: String? = "0",gpsViewModel: GPSViewModel = getViewModel()) {
-
+        var isLoading by remember { mutableStateOf(false) }
         val isGpsEnabled by gpsViewModel.isGpsEnabled
         val estadoRegistro by registroRutaViewModel.registroEstado.collectAsState()
         if(!isGpsEnabled) {
@@ -271,10 +274,6 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                     Log.d("APAGADO","Registro erróneo: ${response.message}")
                 }
             }
-
-
-
-
         }else {
             localizationViewModel.startLocalizacionService(this)
             var searchText by remember { mutableStateOf("") }
@@ -367,7 +366,7 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
                                 val foto =
-                                    "http://chmd.chmd.edu.mx:65083/CREDENCIALES/alumnos/${asistencia.foto}"
+                                    Constantes.FOTO_ALUMNOS+asistencia.foto
                                 Log.d("foto", foto)
                                 AlumnoAsistenciaManBajarComposable(
                                     asistencia.id_alumno,
@@ -383,10 +382,13 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                     asistencia.orden_in_1,
                                     modifier = Modifier,
                                     onImageClick = { idAlumno, ruta ->
-                                        val db =
-                                            TransporteDB.getInstance(this@AsistenciaManBajarActivity)
+                                        val db = TransporteDB.getInstance(this@AsistenciaManBajarActivity)
+                                        isLoading = true // INICIO del loading
+
                                         if (hayConexion()) {
                                             if (asistencia.ascenso == "1") {
+                                                Log.d("bajada _al_", ruta)
+                                                Log.d("bajada _al_", idAlumno)
                                                 asistenciaViewModel.setAlumnoBajada(
                                                     ruta,
                                                     idAlumno,
@@ -394,11 +396,17 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                                     onSuccess = {
                                                         Log.d("bajada _al_", it)
                                                         getAsistencia()
+                                                        CoroutineScope(Dispatchers.Main).launch {
+                                                            delay(500) // un pequeño delay opcional para que se vea
+                                                            isLoading = false
+                                                        }
                                                     },
                                                     onError = {
                                                         Log.e("bajada _al_", it.message.toString())
+                                                        isLoading = false // FIN del loading
                                                     }
                                                 )
+
                                                 CoroutineScope(Dispatchers.IO).launch {
                                                     db.iAsistenciaDAO.bajaTurnoMan(
                                                         asistencia.id_ruta_h,
@@ -408,18 +416,21 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                                     )
                                                 }
                                             }
+
                                             if (asistencia.ascenso == "1" && asistencia.descenso == "1") {
                                                 asistenciaViewModel.reiniciaBajada(
                                                     ruta, idAlumno,
                                                     onSuccess = {
                                                         Log.d("asistencia _al_", it)
                                                         getAsistencia()
+                                                        CoroutineScope(Dispatchers.Main).launch {
+                                                            delay(500) // un pequeño delay opcional para que se vea
+                                                            isLoading = false
+                                                        }
                                                     },
                                                     onError = {
-                                                        Log.e(
-                                                            "asistencia _al_",
-                                                            it.message.toString()
-                                                        )
+                                                        Log.e("asistencia _al_", it.message.toString())
+                                                        isLoading = false
                                                     }
                                                 )
 
@@ -435,10 +446,11 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                             CoroutineScope(Dispatchers.Main).launch {
                                                 delay(1000)
                                                 getAsistencia()
+                                                isLoading = false
                                             }
 
                                         } else {
-
+                                            // Operaciones sin conexión
                                             if (asistencia.ascenso == "1") {
                                                 CoroutineScope(Dispatchers.IO).launch {
                                                     db.iAsistenciaDAO.bajaTurnoMan(
@@ -458,16 +470,14 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                                                     )
                                                 }
                                             }
-
                                             CoroutineScope(Dispatchers.Main).launch {
                                                 delay(1000)
                                                 getAsistencia()
+                                                isLoading = false
                                             }
-
                                         }
-
-
                                     }
+
 
                                 )
 
@@ -619,6 +629,17 @@ class AsistenciaManBajarActivity : TransporteActivity() {
                     })
                 }
             )
+        }
+
+        if (isLoading) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.4f)),
+                contentAlignment = Alignment.Center
+            ) {
+                CircularProgressIndicator()
+            }
         }
 
     }

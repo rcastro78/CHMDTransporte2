@@ -103,6 +103,7 @@ import sv.com.chmd.transporte.model.Asistencia
 import sv.com.chmd.transporte.services.LocalizacionService
 import sv.com.chmd.transporte.services.NetworkChangeReceiver
 import sv.com.chmd.transporte.ui.theme.CHMDTransporteTheme
+import sv.com.chmd.transporte.util.Constantes
 import sv.com.chmd.transporte.util.nunitoBold
 import sv.com.chmd.transporte.util.nunitoRegular
 import sv.com.chmd.transporte.viewmodel.AsistenciaManViewModel
@@ -483,7 +484,7 @@ class AsistenciaTarActivity : TransporteActivity() {
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
                                 val foto =
-                                    "http://chmd.chmd.edu.mx:65083/CREDENCIALES/alumnos/${asistencia.foto}"
+                                    Constantes.FOTO_ALUMNOS+asistencia.foto
                                 Log.d("foto", foto)
                                 AlumnoAsistenciaTarComposable(
                                     asistencia.id_alumno,
@@ -1131,7 +1132,7 @@ class AsistenciaTarActivity : TransporteActivity() {
                                 .padding(horizontal = 12.dp)
                         ) {
                             itemsIndexed(alumnos){index,alumno->
-                                val foto = "http://chmd.chmd.edu.mx:65083/CREDENCIALES/alumnos/${alumno.foto}"
+                                val foto = Constantes.FOTO_ALUMNOS+alumno.foto
                                 AlumnoOtraRutaComposable(alumno.id_alumno,
                                     foto,
                                     alumno.nombre,

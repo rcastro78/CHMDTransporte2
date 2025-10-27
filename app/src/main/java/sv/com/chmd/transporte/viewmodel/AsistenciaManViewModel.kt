@@ -71,14 +71,15 @@ class AsistenciaManViewModel(
 
     }
 
-    fun setAlumnoAsistencia(idRuta:String,idAlumno:String, hora:String, token:String,
+    fun setAlumnoAsistencia(idRuta:String,idAlumno:String, hora:String,
                             onSuccess: (String) -> Unit, onError: (Throwable) -> Unit) {
-        CoroutineScope(Dispatchers.IO).launch {
-            val response = iTransporte.asistenciaAlumnoMan(idRuta, idAlumno, hora, token).awaitResponse()
+        viewModelScope.launch(Dispatchers.IO) {
+            val response = iTransporte.asistenciaAlumnoMan(idRuta, idAlumno).awaitResponse()
             if (response.isSuccessful) {
                 val data = response.body()!!
                 onSuccess(data)
             } else {
+                Log.e("RESPONSE e",response.toString())
                 onError(Throwable(response.message()))
             }
 

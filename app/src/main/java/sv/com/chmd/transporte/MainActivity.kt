@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.TopAppBar
@@ -99,7 +100,6 @@ class MainActivity : ComponentActivity() {
     var token:String = ""
     override fun onStart() {
         super.onStart()
-
         val filter = IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
         registerReceiver(networkChangeReceiver, filter)
     }
@@ -170,6 +170,7 @@ class MainActivity : ComponentActivity() {
         var rememberMe by remember { mutableStateOf(sharedPreferences.getBoolean("rememberMe", false)) } // Estado del Checkbox
         var passwordVisible by remember { mutableStateOf(false) }
         val rutasState by loginViewModel.rutasUiState.collectAsState()
+        var isLoading by remember { mutableStateOf(false) }
         Scaffold(
             topBar = { ToolbarPrincipal() }
         ) { paddingValues ->
@@ -309,14 +310,15 @@ class MainActivity : ComponentActivity() {
                     Spacer(modifier = Modifier.weight(1f))
 
                     Button(onClick = {
+                    isLoading = true
                     if(rememberMe)
                         sharedPreferences.edit().putString("username",username).apply()
-
                         if(username.isNotEmpty()) {
                                 loginViewModel.getRutasCamion(
                                     username.lowercase().replace("camion", ""),
                                     /*password.lowercase(),*/
                                     onSuccess = { lstRutas ->
+                                        isLoading = false
                                         sharedPreferences.edit() {
                                             putString(
                                                 "auxiliar",
@@ -493,6 +495,7 @@ class MainActivity : ComponentActivity() {
 
                                     },
                                     onError = {
+                                        isLoading = false
                                         Toast.makeText(this@MainActivity, "Datos incorrectos", Toast.LENGTH_LONG).show()
                                     })
                                 }
@@ -705,6 +708,17 @@ class MainActivity : ComponentActivity() {
 
 
 
+            }
+
+            if (isLoading) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator()
+                }
             }
         }
     }

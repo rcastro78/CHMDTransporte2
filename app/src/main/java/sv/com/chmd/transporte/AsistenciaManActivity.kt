@@ -85,6 +85,7 @@ import sv.com.chmd.transporte.model.Asistencia
 import sv.com.chmd.transporte.services.LocalizacionService
 import sv.com.chmd.transporte.services.NetworkChangeReceiver
 import sv.com.chmd.transporte.ui.theme.CHMDTransporteTheme
+import sv.com.chmd.transporte.util.Constantes
 import sv.com.chmd.transporte.util.nunitoBold
 import sv.com.chmd.transporte.util.nunitoRegular
 import sv.com.chmd.transporte.viewmodel.AsistenciaManViewModel
@@ -438,7 +439,9 @@ class AsistenciaManActivity : TransporteActivity() {
                             startActivity(it)
                         }
                         finish()
-                    }, onUpdateClick = { getAsistencia() }, onMessageClick = {
+                    }, onUpdateClick = {
+                        getAsistencia()},
+                        onMessageClick = {
                         showMessageDialog = true
                     }, onUploadClick = {
 
@@ -500,7 +503,7 @@ class AsistenciaManActivity : TransporteActivity() {
                                     Spacer(modifier = Modifier.height(8.dp))
                                 }
                                 val foto =
-                                    "http://chmd.chmd.edu.mx:65083/CREDENCIALES/alumnos/${asistencia.foto}"
+                                    Constantes.FOTO_ALUMNOS + asistencia.foto
                                 Log.d("foto", foto)
                                 AlumnoAsistenciaManComposable(
                                     asistencia.id_alumno,
@@ -549,18 +552,28 @@ class AsistenciaManActivity : TransporteActivity() {
                                                 asistenciaViewModel.setAlumnoAsistencia(
                                                     ruta,
                                                     idAlumno,
-                                                    getCurrentTime(), token!!,
+                                                    getCurrentTime(),
                                                     onSuccess = {
+                                                        CoroutineScope(Dispatchers.Main).launch {
+                                                            Toast.makeText(applicationContext, "Asistencia enviada", Toast.LENGTH_LONG).show()
+                                                        }
                                                         Log.d("asistencia _al_", it)
                                                         CoroutineScope(Dispatchers.Main).launch {
-                                                            delay(1000)
+                                                            delay(2000)
                                                             getAsistencia()
                                                         }
                                                     },
                                                     onError = {
+                                                        CoroutineScope(Dispatchers.Main).launch {
+                                                            Toast.makeText(
+                                                                applicationContext,
+                                                                "Error al registrar asistencia",
+                                                                Toast.LENGTH_LONG
+                                                            ).show()
+                                                        }
                                                         Log.e(
                                                             "asistencia _al_",
-                                                            it.message.toString()
+                                                            "Error-> "+it.toString()
                                                         )
                                                     }
                                                 )
@@ -598,6 +611,9 @@ class AsistenciaManActivity : TransporteActivity() {
                                                 asistenciaViewModel.reiniciaAsistencia(
                                                     asistencia.id_ruta_h, asistencia.id_alumno,
                                                     onSuccess = {
+                                                        CoroutineScope(Dispatchers.Main).launch {
+                                                            Toast.makeText(applicationContext, "Asistencia reiniciada", Toast.LENGTH_LONG).show()
+                                                        }
                                                         Log.d("asistencia _al_", it)
                                                         CoroutineScope(Dispatchers.Main).launch {
                                                             delay(1000)
@@ -605,6 +621,9 @@ class AsistenciaManActivity : TransporteActivity() {
                                                         }
                                                     },
                                                     onError = {
+                                                        CoroutineScope(Dispatchers.Main).launch {
+                                                            Toast.makeText(applicationContext, "Error al reiniciar asistencia", Toast.LENGTH_LONG).show()
+                                                        }
                                                         Log.e(
                                                             "asistencia _al_",
                                                             it.message.toString()
@@ -732,9 +751,10 @@ class AsistenciaManActivity : TransporteActivity() {
                                             },
                                             onError = {
                                                 CoroutineScope(Dispatchers.Main).launch {
+                                                    Log.e("cerrarRuta", it.message.toString())
                                                     Toast.makeText(
                                                         this@AsistenciaManActivity,
-                                                        "No se pudo cerrar la ruta, consulta con IT",
+                                                        "No se pudo cerrar la ruta, consulta con IT: "+it.message,
                                                         Toast.LENGTH_LONG
                                                     ).show()
                                                 }
@@ -971,14 +991,14 @@ class AsistenciaManActivity : TransporteActivity() {
 
                             var especial="0"
 
-                            val a = AsistenciaDAO(0,idRuta,alumno.tarjeta,alumno.id_alumno,
+                            val asistencia = AsistenciaDAO(0,idRuta,alumno.tarjeta,alumno.id_alumno,
                                 alumno.nombre,alumno.domicilio,alumno.hora_manana,"",
                                 alumno.ascenso,alumno.descenso,alumno.domicilio_s,alumno.grupo,alumno.grado,
                                 alumno.nivel,alumno.foto,false,false,alumno.ascenso_t!!,alumno.descenso_t,
                                 alumno.salida,orden_in,orden_out,false,false,0,alumno.asistencia,"",
                                 especial,estatusRuta, alumno.orden_in_1.toString(),alumno.orden_out_1.toString())
 
-                            db.iAsistenciaDAO.guardaAsistencia(a)
+                            db.iAsistenciaDAO.guardaAsistencia(asistencia)
                         }
                     },
                     onError = {})

@@ -16,6 +16,7 @@ import android.os.Looper
 import android.telephony.TelephonyManager
 import androidx.annotation.RequiresPermission
 import org.koin.androidx.viewmodel.ext.android.viewModel
+import sv.com.chmd.transporte.util.Constantes
 import sv.com.chmd.transporte.viewmodel.TransporteViewModel
 import kotlin.getValue
 
@@ -23,7 +24,7 @@ import kotlin.getValue
 open class TransporteActivity : ComponentActivity() {
     private lateinit var mHandler: Handler
     private lateinit var mRunnable: Runnable
-    private var mTime: Long = 1000 * 60 * 60  // Timer de 1 hora
+    private var mTime: Long = 1000 * 60 * Constantes.SEG  // Timer de 1 hora
     private lateinit var connectivityReceiver: ConnectivityReceiver
     val transporteViewModel: TransporteViewModel by viewModel()
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -116,11 +117,20 @@ open class TransporteActivity : ComponentActivity() {
 
     // Receptor para detectar cambios en la conectividad de la red
     private inner class ConnectivityReceiver(val viewModel: TransporteViewModel) : BroadcastReceiver() {
+        private var lastCheckTime = 0L
+        private val DEBOUNCE_DELAY = 1000L // 1 segundo
+
         @RequiresPermission(Manifest.permission.READ_PHONE_STATE)
         override fun onReceive(context: Context?, intent: Intent?) {
+            val currentTime = System.currentTimeMillis()
+            if (currentTime - lastCheckTime < DEBOUNCE_DELAY) {
+                return // Ignorar si es muy pronto
+            }
+            lastCheckTime = currentTime
+
             if (!hayConexion()) {
-                mostrarDialogoSinConexion() // Mostrar diálogo si no hay conexión
-            }else{
+                //mostrarDialogoSinConexion()
+            } else {
                 verificarRedLenta(context!!)
             }
         }

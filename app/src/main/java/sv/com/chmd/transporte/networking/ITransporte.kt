@@ -46,8 +46,7 @@ interface ITransporte {
 
     //Marcar asistencia
     @GET("asistenciaAlumno.php")
-    fun asistenciaAlumnoMan(@Query("id_alumno") idAlumno: String?,@Query("id_ruta") idRuta: String?,
-                            @Query("hora") hora:String, @Query("token") token: String):Call<String>
+    fun asistenciaAlumnoMan(@Query("id_alumno") idAlumno: String?,@Query("id_ruta") idRuta: String?):Call<String>
 
     //Marcar bajada
 //Marcar asistencia
